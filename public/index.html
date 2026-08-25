@@ -431,10 +431,14 @@ const I18N = {
     pw:"Passwort", pwSet:"Passwort gesetzt", pwNew:"Neues Passwort", pwNone:"noch kein Passwort",
     pwHint:"Mindestens 6 Zeichen. Der Mitarbeiter meldet sich mit E-Mail und Passwort an.",
     visibility:"Sichtbar für", visAll:"Alle im Team", visSome:"Nur ausgewählte",
+    wholeProject:"Ganzes Projekt sichtbar", projectVis:"Projekt sichtbar für",
+    projectHidden:"Projekt verborgen – nur einzeln freigegebene Aufgaben",
     visNote:"Wer eine Aufgabe nicht sehen darf, bekommt sie auch nicht auf das Gerät geschickt.",
     tasksOf:"Aufgaben von", visTasks:"Sichtbare Aufgaben", assignedAlways:"zugewiesen – immer sichtbar",
     newMember:"Neuer Mitarbeiter", memberSaved:"Mitarbeiter gespeichert.",
-    needEmail:"Bitte Name, E-Mail und Passwort angeben.", loginUser:"E-Mail oder Benutzername",
+    needEmail:"Bitte E-Mail-Adresse und Passwort angeben.", needName:"Bitte einen Namen eingeben.",
+    pwShort:"Das Passwort braucht mindestens 6 Zeichen.", loginUser:"E-Mail oder Benutzername",
+    fieldName:"Name", fieldMail:"E-Mail-Adresse (dient als Benutzername)", fieldPw:"Passwort",
     hidden:"verborgen", of:"von", changePw:"Passwort ändern", leaveEmpty:"leer lassen = unverändert",
     backup:"Sicherung speichern", restore:"Sicherung einspielen",
     backupNote:"Die Sicherung enthält alle Projekte, Aufgaben, Notizen und Anhänge – aber keine Passwörter. Nach dem Einspielen auf einem neuen Server müssen die Passwörter der Mitarbeiter neu gesetzt werden.",
@@ -485,10 +489,14 @@ const I18N = {
     pw:"Jelszó", pwSet:"jelszó beállítva", pwNew:"Új jelszó", pwNone:"még nincs jelszó",
     pwHint:"Legalább 6 karakter. A munkatárs e-mail címmel és jelszóval lép be.",
     visibility:"Kinek látható", visAll:"Mindenkinek", visSome:"Csak a kiválasztottaknak",
+    wholeProject:"A teljes projekt látható", projectVis:"A projektet láthatja",
+    projectHidden:"A projekt rejtett – csak az egyenként engedélyezett feladatok",
     visNote:"Akinek nem látható a feladat, annak az eszközére el sem jut.",
     tasksOf:"Feladatai:", visTasks:"Látható feladatok", assignedAlways:"hozzárendelve – mindig látja",
     newMember:"Új munkatárs", memberSaved:"Munkatárs elmentve.",
-    needEmail:"Adj meg nevet, e-mail címet és jelszót.", loginUser:"E-mail vagy felhasználónév",
+    needEmail:"Adj meg e-mail címet és jelszót.", needName:"Adj meg egy nevet.",
+    pwShort:"A jelszó legalább 6 karakter legyen.", loginUser:"E-mail vagy felhasználónév",
+    fieldName:"Név", fieldMail:"E-mail cím (ez a felhasználónév)", fieldPw:"Jelszó",
     hidden:"rejtett", of:"–", changePw:"Jelszó módosítása", leaveEmpty:"üresen hagyva változatlan",
     backup:"Biztonsági mentés", restore:"Mentés visszatöltése",
     backupNote:"A mentés minden projektet, feladatot, jegyzetet és mellékletet tartalmaz – jelszavakat nem. Új szerverre visszatöltés után a munkatársak jelszavát újra be kell állítani.",
@@ -647,11 +655,18 @@ function save(){ Store.save(); Prefs.save(); SYNC.push(); }
    4. Hilfsfunktionen
    ======================================================================= */
 const group = () => S.groups.find(g=>g.id===S.activeGroup) || S.groups[0];
-/* Darf die angemeldete Person diese Aufgabe sehen?
+/* Darf die angemeldete Person das sehen?
    Der Server filtert bereits – das hier hält die Anzeige stimmig. */
-const canSee = x => S.isAdmin || !Array.isArray(x.visible)
-                    || x.visible.includes(S.meId) || (x.assignees||[]).includes(S.meId);
-const seenTasks = c => (c.tasks||[]).filter(canSee);
+const canSeeGroup = g => S.isAdmin || !g || !Array.isArray(g.visible) || g.visible.includes(S.meId);
+function canSeeIn(g,x){
+  if(S.isAdmin) return true;
+  if((x.assignees||[]).includes(S.meId)) return true;
+  const ex = Array.isArray(x.visible) ? x.visible.includes(S.meId) : null;
+  return canSeeGroup(g) ? (ex!==false) : (ex===true);
+}
+const canSee = x => { const f=findTask(x.id); return f ? canSeeIn(f.g,f.task) : true; };
+const seenTasks = (c,g) => (c.tasks||[]).filter(x=>canSeeIn(g||group(),x));
+const myGroups = () => S.groups.filter(g=>canSeeGroup(g) || g.columns.some(c=>seenTasks(c,g).length));
 const member = id => S.members.find(m=>m.id===id);
 const me = () => member(S.meId) || S.members[0];
 function findTask(id){
@@ -806,9 +821,10 @@ function renderSidebar(){
   el.innerHTML = `
     <div>
       <div class="side-h"><span>${esc(t("groups"))}</span>${S.isAdmin?`<button onclick="addGroup()" title="${esc(t("newGroup"))}">+</button>`:""}</div>
-      ${S.groups.map(g=>`
+      ${myGroups().map(g=>`
         <div class="g-item ${g.id===S.activeGroup?"on":""}" onclick="selectGroup('${g.id}')">
           <span>▦</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(L(g.name))}</span>
+          ${(S.isAdmin&&Array.isArray(g.visible))?`<span title="${esc(t("visSome"))}" style="font-size:11px">🔒</span>`:""}
           ${S.isAdmin?`<button class="g-x" onclick="event.stopPropagation();delGroup('${g.id}')">✕</button>`:""}
         </div>`).join("")}
       ${S.isAdmin?`<button class="side-add" onclick="addGroup()">+ ${esc(t("newGroup"))}</button>`:""}
@@ -828,7 +844,7 @@ function renderBoard(){
   const g=group();
   const keepScroll=document.getElementById("board").scrollLeft;
   document.getElementById("boardTitle").textContent = L(g.name);
-  const total = g.columns.reduce((s,c)=>s+seenTasks(c).length,0);
+  const total = g.columns.reduce((s,c)=>s+seenTasks(c,g).length,0);
   document.getElementById("boardSub").textContent = `${total} ${t("tasks")} · ${g.columns.length} ${t("columns")}`;
 
   document.getElementById("board").innerHTML = g.columns.map(c=>`
@@ -836,11 +852,11 @@ function renderBoard(){
       <div class="col-head">
         <span class="col-dot" style="background:${c.color||"#8e8e93"}"></span>
         <span class="col-title" onclick="${S.isAdmin?`renameColumn('${c.id}')`:""}">${esc(L(c.name))}</span>
-        <span class="col-count">${seenTasks(c).length}</span>
+        <span class="col-count">${seenTasks(c,g).length}</span>
         ${S.isAdmin?`<button class="col-menu" onclick="delColumn('${c.id}')" title="${esc(t("del"))}">✕</button>`:""}
       </div>
       <div class="col-body" data-body="${c.id}">
-        ${seenTasks(c).map(cardHTML).join("") || `<div class="col-empty">${esc(t("emptyCol"))}</div>`}
+        ${seenTasks(c,g).map(cardHTML).join("") || `<div class="col-empty">${esc(t("emptyCol"))}</div>`}
       </div>
       <button class="col-add" onclick="addTask('${c.id}')">+ ${esc(t("newTask"))}</button>
     </section>`).join("")
@@ -871,7 +887,7 @@ function cardHTML(x){
 
 function visibleNotifs(){
   if(S.isAdmin) return S.notifications;
-  return S.notifications.filter(n=>{ const f=n.taskId&&findTask(n.taskId); return f && canSee(f.task); });
+  return S.notifications.filter(n=>{ const f=n.taskId&&findTask(n.taskId); return f && canSeeIn(f.g,f.task); });
 }
 function renderBell(){
   const list=visibleNotifs();
@@ -1346,12 +1362,16 @@ async function importBackup(file){
 
 function countVisible(m){
   let all=0, seen=0;
-  S.groups.forEach(g=>g.columns.forEach(c=>c.tasks.forEach(x=>{
-    all++;
-    const ok = m.role==="admin" || !Array.isArray(x.visible)
-               || x.visible.includes(m.id) || (x.assignees||[]).includes(m.id);
-    if(ok) seen++;
-  })));
+  S.groups.forEach(g=>{
+    const gOk = m.role==="admin" || !Array.isArray(g.visible) || g.visible.includes(m.id);
+    g.columns.forEach(c=>c.tasks.forEach(x=>{
+      all++;
+      if(m.role==="admin"){ seen++; return; }
+      if((x.assignees||[]).includes(m.id)){ seen++; return; }
+      const ex = Array.isArray(x.visible) ? x.visible.includes(m.id) : null;
+      if(gOk ? ex!==false : ex===true) seen++;
+    }));
+  });
   return {all, seen};
 }
 
@@ -1360,8 +1380,15 @@ function editMember(id){
   const m = id ? member(id) : null;
   const isNew = !m;
   const w=document.createElement("div"); w.className="overlay"; w.style.zIndex=120;
-  const tasksHTML = S.groups.map(g=>`
-    <div style="margin-top:10px"><p class="lbl">${esc(L(g.name))}</p>
+  const tasksHTML = S.groups.map(g=>{
+    const gOn = m ? (!Array.isArray(g.visible) || g.visible.includes(m.id)) : true;
+    return `
+    <div style="margin-top:14px;border:1px solid var(--line);border-radius:12px;padding:10px 12px">
+      <label class="chk" style="font-weight:600">
+        <input type="checkbox" class="grpBox" data-group="${g.id}" ${gOn?"checked":""}>
+        <span>${esc(L(g.name))}<small style="color:var(--ink-3);display:block;font-weight:400">${esc(t("wholeProject"))}</small></span>
+      </label>
+      <div class="grpTasks" data-for="${g.id}" style="margin-left:8px;padding-left:10px;border-left:2px solid var(--line)">
       ${g.columns.map(c=>c.tasks.map(x=>{
         const assigned=(x.assignees||[]).includes(m?m.id:"");
         const on = m ? (!Array.isArray(x.visible) || x.visible.includes(m.id)) : true;
@@ -1369,8 +1396,11 @@ function editMember(id){
           <input type="checkbox" class="visBox" data-task="${x.id}" ${on?"checked":""} ${assigned?"disabled":""}>
           <span>${esc(L(x.title))}<small style="color:var(--ink-3);display:block">${esc(L(c.name))}${assigned?" · "+esc(t("assignedAlways")):""}</small></span>
         </label>`;
-      }).join("")).join("")}
-    </div>`).join("");
+      }).join("")).join("") || `<p style="color:var(--ink-3);font-size:12.5px;margin:6px 0">—</p>`}
+      </div>
+      <p class="grpNote" data-note="${g.id}" style="color:var(--ink-3);font-size:11.5px;margin:6px 0 0;${gOn?"display:none":""}">${esc(t("projectHidden"))}</p>
+    </div>`;
+  }).join("");
 
   w.innerHTML=`<div class="sheet">
     <div class="sheet-head"><b style="font-size:16px">${esc(isNew?t("newMember"):m.name)}</b><button class="x">✕</button></div>
@@ -1380,9 +1410,14 @@ function editMember(id){
         <button class="btn ghost-b sm" id="aPick">${esc(t("photo"))}…</button>
         <input type="file" accept="image/*" id="aFile" class="hidden">
       </div>
+      <p class="lbl">${esc(t("fieldName"))}</p>
       <input class="inp" id="aName" placeholder="${esc(t("namePh"))}" value="${esc(m?m.name:"")}">
-      <input class="inp" id="aMail" type="email" style="margin-top:8px" placeholder="name@firma.de" value="${esc(m?(m.email||""):"")}">
-      <input class="inp" id="aPw" type="password" style="margin-top:8px" placeholder="${esc(isNew?t("pw"):t("pwNew")+" – "+t("leaveEmpty"))}">
+
+      <p class="lbl" style="margin-top:14px">${esc(t("fieldMail"))}</p>
+      <input class="inp" id="aMail" type="email" inputmode="email" placeholder="name@firma.de" value="${esc(m?(m.email||""):"")}">
+
+      <p class="lbl" style="margin-top:14px">${esc(t("fieldPw"))}${m&&m.hasPw?` <span style="text-transform:none;letter-spacing:0;font-weight:400">(${esc(t("leaveEmpty"))})</span>`:""}</p>
+      <input class="inp" id="aPw" type="password" autocomplete="new-password" placeholder="${esc(isNew?t("pw"):t("pwNew"))}">
       <p style="color:var(--ink-3);font-size:12px;margin:6px 0 0">${esc(t("pwHint"))}</p>
 
       <p class="lbl" style="margin-top:16px">${esc(t("role"))}</p>
@@ -1416,6 +1451,12 @@ function editMember(id){
     w.querySelector("#rAdmin").classList.toggle("on", r==="admin");
     w.querySelector("#visWrap").style.display = r==="admin" ? "none" : "";
   };
+  w.querySelectorAll(".grpBox").forEach(b=>{
+    b.onchange=()=>{
+      const note=w.querySelector(`[data-note="${b.dataset.group}"]`);
+      if(note) note.style.display = b.checked ? "none" : "";
+    };
+  });
   w.querySelector("#rMember").onclick=()=>setRole("member");
   w.querySelector("#rAdmin").onclick=()=>setRole("admin");
   const close=()=>w.remove();
@@ -1425,10 +1466,10 @@ function editMember(id){
 
   w.querySelector("[data-ok]").onclick=async ()=>{
     const nm=name.value.trim(), em=w.querySelector("#aMail").value.trim(), pw=w.querySelector("#aPw").value;
-    if(!nm){ toast(t("needEmail")); return; }
-    if(isNew && (!em || pw.length<6)){ toast(t("needEmail")); return; }
+    if(!nm){ toast(t("needName")); return; }
+    if(isNew && role!=="admin" && (!em || !pw)){ toast(t("needEmail")); return; }
     if(em && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ toast(t("mailBad")); return; }
-    if(pw && pw.length<6){ toast(t("needEmail")); return; }
+    if(pw && pw.length<6){ toast(t("pwShort")); return; }
 
     let rec = m;
     if(isNew){
@@ -1440,6 +1481,19 @@ function editMember(id){
 
     // Sichtbarkeit übernehmen
     if(role!=="admin"){
+      // 1. ganze Projekte
+      [...w.querySelectorAll(".grpBox")].forEach(b=>{
+        const g=S.groups.find(x=>x.id===b.dataset.group); if(!g) return;
+        let vis = Array.isArray(g.visible) ? [...g.visible] : null;
+        if(b.checked){
+          if(vis && !vis.includes(rec.id)){ vis.push(rec.id); touch(g); }
+        }else{
+          if(!vis){ vis = S.members.filter(o=>o.id!==rec.id && o.role!=="admin").map(o=>o.id); touch(g); }
+          else if(vis.includes(rec.id)){ vis = vis.filter(v=>v!==rec.id); touch(g); }
+        }
+        g.visible = vis;
+      });
+      // 2. einzelne Aufgaben
       const boxes=[...w.querySelectorAll(".visBox")];
       boxes.forEach(b=>{
         const f=findTask(b.dataset.task); if(!f) return;
@@ -1570,7 +1624,7 @@ function runSearch(){
   if(!q){ box.classList.remove("open"); box.innerHTML=""; return; }
   const tasks=[],notes=[],checks=[];
   S.groups.forEach(g=>g.columns.forEach(c=>c.tasks.forEach(x=>{
-    if(!canSee(x)) return;
+    if(!canSeeIn(g,x)) return;
     const title=L(x.title).toLowerCase(), desc=L(x.desc).toLowerCase();
     if(title.includes(q)||desc.includes(q)) tasks.push({x,g,c});
     (x.notes||[]).forEach(n=>{ if(L(n.text).toLowerCase().includes(q)) notes.push({x,g,c,n}); });
