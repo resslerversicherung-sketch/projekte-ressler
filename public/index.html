@@ -264,6 +264,8 @@ textarea.inp{resize:vertical;min-height:74px;font-family:inherit}
 .icon-send{width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 38px}
 .hint{color:var(--ink-3);font-size:12.5px;text-align:center;padding:26px 14px}
 .hidden{display:none!important}
+.conv-badge{min-width:20px;height:20px;border-radius:10px;background:var(--accent);color:#fff;
+  font-size:11px;font-weight:650;display:flex;align-items:center;justify-content:center;padding:0 6px}
 .adm-row{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
 .adm-row:last-of-type{border-bottom:0}
 .only-mobile{display:none}
@@ -447,7 +449,7 @@ const I18N = {
     groups:"Aufgabengruppen", newGroup:"Neue Gruppe", team:"Team", addMember:"Mitglied hinzufügen",
     newColumn:"Neues Task-Feld", newTask:"Neue Aufgabe", tasks:"Aufgaben", column:"Task-Feld", columns:"Task-Felder",
     notifications:"Benachrichtigungen", markAll:"Alle gelesen", noNotifications:"Noch keine Änderungen",
-    chats:"Chats", newChatGroup:"Neue Chatgruppe", chatPlaceholder:"Nachricht schreiben…", noChat:"Wähle einen Chat oder starte einen neuen.",
+    chats:"Chats", newChatGroup:"Neue Chatgruppe", newMsg:"Neue Nachricht von", chatPlaceholder:"Nachricht schreiben…", noChat:"Wähle einen Chat oder starte einen neuen.",
     loggedInAs:"Angemeldet als", switchUser:"Benutzer wechseln",
     title:"Titel", description:"Beschreibung", descriptionPh:"Worum geht es?",
     priority:"Priorität", high:"Hoch", medium:"Mittel", low:"Niedrig", none:"Keine",
@@ -457,6 +459,8 @@ const I18N = {
     reply:"Antworten", replyPh:"Antwort schreiben…", send:"Senden", cancel:"Abbrechen",
     save:"Speichern", del:"Löschen", deleteTask:"Aufgabe löschen", rename:"Umbenennen",
     today:"Heute", overdue:"Überfällig", tomorrow:"Morgen",
+    createdOn:"Erstellt am", changedOn:"Zuletzt geändert", uploadedOn:"Hochgeladen am",
+    projectCreated:"Projekt erstellt am",
     namePh:"Name", groupNamePh:"Name der Gruppe", columnNamePh:"Name des Task-Feldes", taskNamePh:"Was ist zu tun?",
     photo:"Foto", members:"Mitglieder", create:"Erstellen", chatGroupName:"Gruppenname",
     resultsTasks:"Aufgaben", resultsNotes:"Notizen", resultsChecks:"Checklisten-Punkte", noResults:"Keine Ergebnisse",
@@ -505,7 +509,7 @@ const I18N = {
     groups:"Feladatcsoportok", newGroup:"Új csoport", team:"Csapat", addMember:"Tag hozzáadása",
     newColumn:"Új feladatmező", newTask:"Új feladat", tasks:"Feladat", column:"Feladatmező", columns:"feladatmező",
     notifications:"Értesítések", markAll:"Mind olvasott", noNotifications:"Még nincs változás",
-    chats:"Csevegés", newChatGroup:"Új csevegőcsoport", chatPlaceholder:"Írj üzenetet…", noChat:"Válassz beszélgetést, vagy indíts újat.",
+    chats:"Csevegés", newChatGroup:"Új csevegőcsoport", newMsg:"Új üzenet tőle:", chatPlaceholder:"Írj üzenetet…", noChat:"Válassz beszélgetést, vagy indíts újat.",
     loggedInAs:"Bejelentkezve mint", switchUser:"Felhasználóváltás",
     title:"Cím", description:"Leírás", descriptionPh:"Miről szól?",
     priority:"Prioritás", high:"Magas", medium:"Közepes", low:"Alacsony", none:"Nincs",
@@ -515,6 +519,8 @@ const I18N = {
     reply:"Válasz", replyPh:"Írj választ…", send:"Küldés", cancel:"Mégse",
     save:"Mentés", del:"Törlés", deleteTask:"Feladat törlése", rename:"Átnevezés",
     today:"Ma", overdue:"Lejárt", tomorrow:"Holnap",
+    createdOn:"Létrehozva", changedOn:"Utoljára módosítva", uploadedOn:"Feltöltve",
+    projectCreated:"A projekt létrehozva:",
     namePh:"Név", groupNamePh:"A csoport neve", columnNamePh:"A feladatmező neve", taskNamePh:"Mi a teendő?",
     photo:"Fénykép", members:"Tagok", create:"Létrehozás", chatGroupName:"Csoport neve",
     resultsTasks:"Feladatok", resultsNotes:"Jegyzetek", resultsChecks:"Ellenőrzőlista-pontok", noResults:"Nincs találat",
@@ -563,7 +569,7 @@ function seed(){
   return {
     lang:"de", meId:m1.id, isAdmin:true, members:[m1,m2,m3],
     groups:[{
-      id:uid(), name:{de:"Website Relaunch",hu:"Weboldal megújítás"},
+      id:uid(), name:{de:"Website Relaunch",hu:"Weboldal megújítás"}, created:Date.now()-604800000,
       columns:[
         {id:uid(), name:{de:"Zu erledigen",hu:"Teendő"}, color:"#8e8e93", tasks:[
           {id:uid(), title:{de:"Startseite gestalten",hu:"Kezdőlap megtervezése"}, desc:{de:"Entwurf für die neue Startseite inkl. Bildern.",hu:"Vázlat az új kezdőlaphoz képekkel."},
@@ -584,7 +590,7 @@ function seed(){
         ]}
       ]
     },{
-      id:uid(), name:{de:"Marketing 2026",hu:"Marketing 2026"},
+      id:uid(), name:{de:"Marketing 2026",hu:"Marketing 2026"}, created:Date.now()-259200000,
       columns:[
         {id:uid(), name:{de:"Ideen",hu:"Ötletek"}, color:"#af52de", tasks:[]},
         {id:uid(), name:{de:"Geplant",hu:"Tervezett"}, color:"#0071e3", tasks:[]},
@@ -636,7 +642,7 @@ const Store = {
 /* Geräteeinstellungen bleiben lokal – Sprache und angemeldete Person
    sollen sich nicht auf die anderen Geräte übertragen. */
 const Prefs = {
-  save(){ KV.set("pm_prefs_v1", JSON.stringify({lang:S.lang, meId:S.meId, isAdmin:S.isAdmin, activeGroup:S.activeGroup, readIds:(S.readIds||[]).slice(-300)})); },
+  save(){ KV.set("pm_prefs_v1", JSON.stringify({lang:S.lang, meId:S.meId, isAdmin:S.isAdmin, activeGroup:S.activeGroup, readIds:(S.readIds||[]).slice(-300), chatSeen:S.chatSeen||{}})); },
   async load(){
     const v = await KV.get("pm_prefs_v1");
     try{ return v ? JSON.parse(v) : null; }catch(e){ return null; }
@@ -693,6 +699,12 @@ function dueLabel(iso){
   if(d===1) return t("tomorrow");
   return new Date(iso+"T00:00:00").toLocaleDateString(S.lang==="hu"?"hu-HU":"de-DE",{day:"2-digit",month:"short"});
 }
+/* genaues Datum mit Uhrzeit, z. B. 25.08.2026, 14:32 */
+function fmtDT(ts){
+  if(!ts) return "";
+  return new Date(ts).toLocaleString(S.lang==="hu"?"hu-HU":"de-DE",
+    {day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+}
 function timeAgo(ts){
   const s=Math.floor((Date.now()-ts)/1000);
   const loc = S.lang==="hu"?"hu-HU":"de-DE";
@@ -724,11 +736,13 @@ function toast(text, taskId){
   const root=document.getElementById("toastRoot");
   const el=document.createElement("div");
   el.className="toast";
-  el.innerHTML = `<span>🔔</span><span>${esc(text)}</span>`;
+  const chat = String(text).startsWith("💬");
+  el.innerHTML = `<span>${chat?"💬":"🔔"}</span><span>${esc(chat?String(text).slice(2).trim():text)}</span>`;
   if(window.innerWidth>820 && document.getElementById("chatDrawer").classList.contains("open")) el.style.right="398px";
   if(taskId) el.onclick=()=>{ openTask(taskId); el.remove(); };
   root.appendChild(el);
   setTimeout(()=>{ el.style.transition="opacity .3s"; el.style.opacity="0"; setTimeout(()=>el.remove(),320); }, 4200);
+  return el;
 }
 </script>
 <script>
@@ -788,7 +802,7 @@ function render(){
   document.getElementById("bell").title = t("notifications");
   document.getElementById("chatBtn").title = t("chats");
   document.querySelectorAll(".lang button").forEach(b=>b.classList.toggle("on", b.dataset.lang===S.lang));
-  renderSidebar(); renderBoard(); renderBell(); renderMe(); renderChat();
+  renderSidebar(); renderBoard(); renderBell(); renderMe(); renderChat(); renderChatBadge();
 }
 
 function renderMe(){
@@ -845,7 +859,9 @@ function renderBoard(){
   const keepScroll=document.getElementById("board").scrollLeft;
   document.getElementById("boardTitle").textContent = L(g.name);
   const total = g.columns.reduce((s,c)=>s+seenTasks(c,g).length,0);
-  document.getElementById("boardSub").textContent = `${total} ${t("tasks")} · ${g.columns.length} ${t("columns")}`;
+  document.getElementById("boardSub").textContent =
+    `${total} ${t("tasks")} · ${g.columns.length} ${t("columns")}`
+    + (g.created ? ` · ${t("projectCreated")} ${fmtDT(g.created)}` : "");
 
   document.getElementById("board").innerHTML = g.columns.map(c=>`
     <section class="col" data-col="${c.id}">
@@ -899,7 +915,7 @@ function renderBell(){
    + (list.length ? list.map(n=>`
       <div class="n-item ${isRead(n.id)?"":"unread"}" onclick="openFromNotif('${n.id}')">
         <span style="font-size:15px">🔔</span>
-        <div style="flex:1"><p>${esc(t(n.key,n.params))}</p><time>${esc(timeAgo(n.ts))}</time></div>
+        <div style="flex:1"><p>${esc(t(n.key,n.params))}</p><time title="${esc(fmtDT(n.ts))}">${esc(timeAgo(n.ts))} · ${esc(fmtDT(n.ts))}</time></div>
       </div>`).join("")
      : `<div class="hint">${esc(t("noNotifications"))}</div>`);
 }
@@ -930,7 +946,7 @@ function toggleSidebar(){
 async function addGroup(){
   const n=await askText(t("newGroup"), t("groupNamePh"));
   if(!n) return;
-  const g=touch({id:uid(),name:n,columns:[
+  const g=touch({id:uid(),name:n,created:now(),columns:[
     touch({id:uid(),name:t("newColumn"),color:"#8e8e93",tasks:[]})
   ]});
   S.groups.push(g); S.activeGroup=g.id; render(); save();
@@ -1023,7 +1039,7 @@ function drawTask(){
           ${checks.length?`<div class="bar"><i style="width:${pct}%"></i></div>`:""}
           ${checks.map(c=>`<label class="chk ${c.done?"done":""}">
               <input type="checkbox" ${c.done?"checked":""} onchange="toggleCheck('${c.id}')">
-              <span>${esc(L(c.text))}</span>
+              <span title="${c.ts?esc(t("createdOn"))+": "+esc(fmtDT(c.ts)):""}">${esc(L(c.text))}</span>
               <button class="g-x" onclick="event.preventDefault();delCheck('${c.id}')">✕</button>
             </label>`).join("")}
           <div style="display:flex;gap:7px;margin-top:8px">
@@ -1040,6 +1056,7 @@ function drawTask(){
                 ? `<a href="${a.data}" target="_blank" rel="noopener"><img src="${a.data}" alt="${esc(a.name)}"></a>`
                 : `<a href="${a.data}" download="${esc(a.name)}" class="doc" style="text-decoration:none">📄</a>`}
               <div class="fn" title="${esc(a.name)}">${esc(a.name)}</div>
+              <div class="fn" style="padding-top:0;color:var(--ink-3)" title="${esc(t("uploadedOn"))}: ${esc(fmtDT(a.ts||a.mt))}">${esc(fmtDT(a.ts||a.mt))}</div>
               <button class="rm" onclick="delFile('${a.id}')">✕</button>
             </div>`).join("")}</div>`:""}
           <div class="drop" id="drop" onclick="document.getElementById('fileIn').click()">
@@ -1108,6 +1125,10 @@ function drawTask(){
           }).join(""):""}
         </div>`:""}
         ${S.isAdmin?`<button class="btn danger" style="width:100%" onclick="deleteTask()">${esc(t("deleteTask"))}</button>`:""}
+        <p style="color:var(--ink-3);font-size:11.5px;margin:14px 0 0;line-height:1.6">
+          ${x.created?`${esc(t("createdOn"))}: ${esc(fmtDT(x.created))}<br>`:""}
+          ${x.mt?`${esc(t("changedOn"))}: ${esc(fmtDT(x.mt))}`:""}
+        </p>
       </aside>
     </div>
   </div>`;
@@ -1157,7 +1178,7 @@ function noteHTML(x,n){
   return `<div class="note">
     ${avatar(m)}
     <div class="note-b">
-      <div class="note-head"><b>${esc(m?m.name:"?")}</b><time>${esc(timeAgo(n.ts))}</time></div>
+      <div class="note-head"><b>${esc(m?m.name:"?")}</b><time title="${esc(fmtDT(n.ts))}">${esc(fmtDT(n.ts))}</time></div>
       <div class="bubble">${esc(L(n.text))}</div>
       <div class="note-acts">
         ${chips}
@@ -1650,7 +1671,22 @@ function jump(taskId,groupId){
 /* =======================================================================
    12. Chat
    ======================================================================= */
-const myChats = () => (S.chats||[]).filter(c=>S.isAdmin || (c.members||[]).includes(S.meId));
+const myChats = () => (S.chats||[]).filter(c=>(c.members||[]).includes(S.meId));
+const chatSeen = id => (S.chatSeen||{})[id] || 0;
+const unreadIn = c => (c.messages||[]).filter(m=>m.author!==S.meId && (m.ts||0)>chatSeen(c.id)).length;
+function chatUnread(){ return myChats().reduce((n,c)=>n+unreadIn(c),0); }
+function markChatSeen(id){
+  const c=(S.chats||[]).find(x=>x.id===id); if(!c) return;
+  S.chatSeen = S.chatSeen || {};
+  S.chatSeen[id] = Math.max(chatSeen(id), ...(c.messages||[]).map(m=>m.ts||0), 0);
+  Prefs.save(); renderChatBadge();
+}
+function renderChatBadge(){
+  const n=chatUnread(), b=document.getElementById("chatBadge");
+  if(!b) return;
+  b.textContent = n>99 ? "99+" : n;
+  b.classList.toggle("hidden", n===0);
+}
 function chatTitle(c){
   if(c.type==="group") return c.name;
   const other=c.members.find(m=>m!==S.meId)||c.members[0];
@@ -1671,10 +1707,11 @@ function renderChat(){
       <div class="dr-body">
         ${myChats().length?myChats().map(c=>{
           const last=c.messages[c.messages.length-1];
+          const un=unreadIn(c);
           return `<div class="conv" onclick="openConv('${c.id}')">${chatAvatar(c)}
-            <div style="flex:1;min-width:0"><b>${esc(chatTitle(c))}</b>
-            <small>${last?esc((member(last.author)?.name.split(" ")[0]||"")+": "+L(last.text)):"—"}</small></div>
-            ${last?`<time style="font-size:11px;color:var(--ink-3)">${esc(timeAgo(last.ts))}</time>`:""}
+            <div style="flex:1;min-width:0"><b style="${un?"font-weight:700":""}">${esc(chatTitle(c))}</b>
+            <small style="${un?"color:var(--ink);font-weight:550":""}">${last?esc((member(last.author)?.name.split(" ")[0]||"")+": "+L(last.text)):"—"}</small></div>
+            ${un?`<span class="conv-badge">${un}</span>`:(last?`<time style="font-size:11px;color:var(--ink-3)">${esc(timeAgo(last.ts))}</time>`:"")}
           </div>`}).join(""):`<div class="hint">${esc(t("noChat"))}</div>`}
         <div class="res-h" style="margin-top:10px">${esc(t("team"))}</div>
         ${S.members.filter(m=>m.id!==S.meId).map(m=>`<div class="conv" onclick="openDM('${m.id}')">${avatar(m)}<b>${esc(m.name)}</b></div>`).join("")}
@@ -1690,7 +1727,7 @@ function renderChat(){
         const mine=m.author===S.meId, au=member(m.author);
         return `<div class="msg ${mine?"me":""}">${mine?"":avatar(au,"sm")}
           <div><div class="bub">${esc(L(m.text))}</div>
-          <small style="${mine?"text-align:right":""}">${mine?"":esc(au?.name.split(" ")[0]||"")+" · "}${esc(timeAgo(m.ts))}</small></div></div>`;
+          <small style="${mine?"text-align:right":""}" title="${esc(fmtDT(m.ts))}">${mine?"":esc(au?.name.split(" ")[0]||"")+" · "}${esc(fmtDT(m.ts))}</small></div></div>`;
       }).join("")}
     </div>
     <div class="dr-foot">
@@ -1698,6 +1735,7 @@ function renderChat(){
       <button class="icon-send" onclick="sendMsg()">↑</button>
     </div>`;
   const box=document.getElementById("msgs"); box.scrollTop=box.scrollHeight;
+  markChatSeen(conv.id);
   const inp=document.getElementById("chatIn");
   inp.onkeydown=e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMsg(); } };
   inp.oninput=()=>{ inp.style.height="auto"; inp.style.height=Math.min(inp.scrollHeight,110)+"px"; };
@@ -1710,7 +1748,7 @@ function toggleChat(open){
   document.getElementById("chatBtn").classList.toggle("active", on);
   if(on) renderChat();
 }
-function openConv(id){ S.activeChat=id; toggleChat(true); renderChat(); save(); }
+function openConv(id){ S.activeChat=id; toggleChat(true); markChatSeen(id); renderChat(); save(); }
 function backToChats(){ S.activeChat=null; renderChat(); save(); }
 function openDM(memberId){
   if(memberId===S.meId){ toggleChat(true); return; }
@@ -1920,7 +1958,7 @@ const SYNC = {
   url:"/api/board",
   fast:5000,      // Abfrageintervall, während aktiv gearbeitet wird (ms)
   slow:30000,     // Abfrageintervall bei Leerlauf (ms)
-  key:null, rev:-1, mode:"off", seenTs:0, everSynced:false,
+  key:null, rev:-1, mode:"off", seenTs:0, seenChat:0, everSynced:false,
   busy:false, pushTimer:null, pollTimer:null, dirty:false, lastAct:0,
 
   headers(){ return {"Content-Type":"application/json","x-board-key":this.key||""}; },
@@ -1931,6 +1969,7 @@ const SYNC = {
     this.key = key;
     this.everSynced = !!(await KV.get("pm_synced_v1"));
     this.seenTs = Math.max(0, ...S.notifications.map(n=>n.ts||0));
+    this.seenChat = Math.max(0, ...(S.chats||[]).flatMap(c=>(c.messages||[]).map(m=>m.ts||0)));
     const ok = await this.pull(true);
     this.mode = ok ? "on" : "off";
     setStatus(this.mode==="on" ? "on" : "off");
@@ -2139,6 +2178,19 @@ function applyRemote(remote){
   SYNC.seenTs = Math.max(SYNC.seenTs, ...S.notifications.map(n=>n.ts||0), 0);
   fresh.slice(0,3).forEach(n=>toast(t(n.key,n.params), n.taskId));
 
+  // neue Chat-Nachrichten melden
+  const neu=[];
+  myChats().forEach(c=>(c.messages||[]).forEach(m=>{
+    if(m.author!==S.meId && (m.ts||0)>SYNC.seenChat && (m.ts||0)>chatSeen(c.id))
+      neu.push({c, m});
+  }));
+  SYNC.seenChat = Math.max(SYNC.seenChat, ...myChats().flatMap(c=>(c.messages||[]).map(m=>m.ts||0)), 0);
+  neu.slice(-2).forEach(({c,m})=>{
+    const el=toast(`💬 ${t("newMsg")} ${member(m.author)?.name||"?"}: ${L(m.text)}`.slice(0,120));
+    if(el) el.onclick=()=>{ openConv(c.id); el.remove(); };
+  });
+  renderChatBadge();
+
   if(!document.body.classList.contains("locked")){
     render();
     const open=document.getElementById("taskOverlay");
@@ -2221,6 +2273,7 @@ async function unlock(){
     if(prefs.isAdmin!==undefined) S.isAdmin=prefs.isAdmin;
     if(prefs.activeGroup) S.activeGroup=prefs.activeGroup;
     S.readIds = prefs.readIds || [];
+    S.chatSeen = prefs.chatSeen || {};
   }
   if(!S.groups.find(g=>g.id===S.activeGroup)) S.activeGroup=(S.groups[0]||{}).id;
   if(!S.members.find(m=>m.id===S.meId)) S.meId=(S.members[0]||{}).id;
