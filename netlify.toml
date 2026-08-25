@@ -1,0 +1,6 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+# Der Endpunkt /api/board kommt aus netlify/functions/board.mjs
+# (dort: export const config = { path: "/api/board" })

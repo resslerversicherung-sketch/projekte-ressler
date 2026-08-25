@@ -1,0 +1,2202 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Projekt</title>
+<style>
+:root{
+  --bg:#f5f5f7;
+  --panel:#ffffff;
+  --ink:#1d1d1f;
+  --ink-2:#6e6e73;
+  --ink-3:#8e8e93;
+  --line:#e3e3e8;
+  --accent:#0071e3;
+  --accent-soft:#e8f1fd;
+  --red:#ff3b30;
+  --orange:#ff9500;
+  --green:#34c759;
+  --purple:#af52de;
+  --radius:14px;
+  --shadow:0 1px 2px rgba(0,0,0,.06), 0 6px 20px rgba(0,0,0,.05);
+  --shadow-lg:0 10px 40px rgba(0,0,0,.16);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",Inter,Segoe UI,Roboto,Arial,sans-serif;
+  font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#c9c9d0;border-radius:8px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:#aeaeb6;background-clip:content-box;border:3px solid transparent}
+
+/* ---------- Layout ---------- */
+.app{display:flex;flex-direction:column;height:100vh}
+.topbar{
+  height:56px;flex:0 0 56px;display:flex;align-items:center;gap:12px;padding:0 16px;
+  background:rgba(255,255,255,.82);backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid var(--line);position:relative;z-index:40;
+}
+.brand{display:flex;align-items:center;gap:9px;font-weight:600;letter-spacing:-.02em;font-size:15px}
+.brand-dot{width:22px;height:22px;border-radius:7px;background:linear-gradient(145deg,#0a84ff,#0040dd);box-shadow:0 1px 3px rgba(0,64,221,.4)}
+.spacer{flex:1}
+
+.search{position:relative;width:min(420px,38vw)}
+.search input{
+  width:100%;height:34px;border-radius:10px;border:1px solid transparent;background:#ececeF;
+  padding:0 32px 0 32px;transition:.16s;
+}
+.search input:focus{background:#fff;border-color:#d3d3da;outline:none;box-shadow:0 0 0 3px rgba(0,113,227,.14)}
+.search .ico{position:absolute;left:10px;top:8px;color:var(--ink-3)}
+.search .clear{position:absolute;right:6px;top:5px;color:var(--ink-3);padding:2px 6px;border-radius:6px}
+.results{
+  position:absolute;top:42px;left:0;right:0;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:var(--shadow-lg);max-height:60vh;overflow:auto;padding:6px;display:none;
+}
+.results.open{display:block}
+.res-h{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);padding:8px 10px 4px;font-weight:600}
+.res{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:9px;cursor:pointer}
+.res:hover{background:var(--bg)}
+.res b{font-weight:550}
+.res small{color:var(--ink-3);display:block}
+.empty-res{padding:16px;color:var(--ink-3);text-align:center}
+
+.tbtn{height:34px;min-width:34px;padding:0 10px;border-radius:10px;display:flex;align-items:center;gap:7px;color:var(--ink);transition:.15s}
+.tbtn:hover{background:#ececef}
+.tbtn.active{background:var(--accent-soft);color:var(--accent)}
+.badge{position:absolute;top:1px;right:1px;min-width:16px;height:16px;border-radius:9px;background:var(--red);color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid #fff}
+.rel{position:relative}
+
+.lang{display:flex;background:#ececef;border-radius:9px;padding:2px}
+.lang button{padding:4px 10px;border-radius:7px;font-size:12px;font-weight:600;color:var(--ink-2)}
+.lang button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+
+.body{flex:1;display:flex;min-height:0}
+.sidebar{
+  width:248px;flex:0 0 248px;border-right:1px solid var(--line);background:rgba(255,255,255,.6);
+  padding:14px 12px;overflow:auto;display:flex;flex-direction:column;gap:22px;
+}
+.side-h{font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding:0 8px 6px;display:flex;justify-content:space-between;align-items:center}
+.side-h button{color:var(--accent);font-size:16px;line-height:1;padding:2px 6px;border-radius:6px}
+.side-h button:hover{background:var(--accent-soft)}
+.g-item{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:9px;cursor:pointer;color:var(--ink-2);font-weight:500}
+.g-item:hover{background:#ececef}
+.g-item.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.g-item .g-x{margin-left:auto;opacity:0;color:var(--ink-3);padding:0 4px;border-radius:5px}
+.g-item:hover .g-x{opacity:1}
+.g-item .g-x:hover{color:var(--red)}
+.m-item{display:flex;align-items:center;gap:9px;padding:5px 8px;border-radius:9px;cursor:pointer}
+.m-item:hover{background:#ececef}
+.m-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-item .g-x{margin-left:auto;opacity:0;color:var(--ink-3);padding:0 4px}
+.m-item:hover .g-x{opacity:1}
+.side-add{width:100%;text-align:left;padding:7px 9px;border-radius:9px;color:var(--ink-3);font-weight:500}
+.side-add:hover{background:#ececef;color:var(--ink)}
+
+/* ---------- Board ---------- */
+.board-wrap{flex:1;display:flex;flex-direction:column;min-width:0}
+.board-head{padding:16px 22px 10px;display:flex;align-items:baseline;gap:12px}
+.board-head h1{font-size:22px;font-weight:650;letter-spacing:-.02em;margin:0}
+.board-head .sub{color:var(--ink-3);font-size:12.5px}
+.board{flex:1;display:flex;gap:14px;padding:6px 22px 22px;overflow-x:auto;overflow-y:hidden;align-items:flex-start}
+.col{
+  width:290px;flex:0 0 290px;background:rgba(0,0,0,.035);border-radius:var(--radius);
+  display:flex;flex-direction:column;max-height:100%;
+}
+.col-head{display:flex;align-items:center;gap:8px;padding:12px 12px 8px}
+.col-dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+.col-title{font-weight:600;font-size:13.5px;letter-spacing:-.01em;cursor:text;border-radius:6px;padding:1px 3px}
+.col-title:hover{background:rgba(0,0,0,.05)}
+.col-count{color:var(--ink-3);font-size:12px;font-variant-numeric:tabular-nums}
+.col-menu{margin-left:auto;color:var(--ink-3);padding:2px 6px;border-radius:6px;opacity:0}
+.col:hover .col-menu{opacity:1}
+.col-menu:hover{background:rgba(0,0,0,.06)}
+.col-body{padding:4px 10px 10px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:8px;min-height:24px}
+.col-add{margin:0 10px 10px;padding:8px;border-radius:10px;color:var(--ink-3);font-weight:500;text-align:left;font-size:13px}
+.col-add:hover{background:rgba(0,0,0,.05);color:var(--ink)}
+.add-col{width:230px;flex:0 0 230px;border-radius:var(--radius);border:1px dashed #c9c9d1;color:var(--ink-3);padding:14px;font-weight:500;text-align:left}
+.add-col:hover{background:rgba(0,0,0,.03);color:var(--ink)}
+
+.card{
+  background:#fff;border-radius:11px;box-shadow:0 1px 2px rgba(0,0,0,.07);padding:10px 11px;
+  cursor:pointer;position:relative;overflow:hidden;touch-action:pan-y pan-x;transition:box-shadow .15s, transform .15s;
+}
+.card:hover{box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.card:active{cursor:grabbing}
+.card-stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+.card.has-color{padding-left:14px}
+.card-top{display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap}
+.pill{font-size:10.5px;font-weight:650;padding:2px 7px;border-radius:6px;letter-spacing:.01em}
+.card h4{margin:0;font-size:13.5px;font-weight:520;line-height:1.35;letter-spacing:-.005em;word-break:break-word}
+.card-meta{display:flex;align-items:center;gap:10px;margin-top:8px;color:var(--ink-3);font-size:11.5px;flex-wrap:wrap}
+.card-meta .mi{display:flex;align-items:center;gap:3px}
+.due{padding:2px 7px;border-radius:6px;background:#f0f0f3;font-weight:550}
+.due.today{background:#fff4e5;color:#b25e00}
+.due.over{background:#ffeceb;color:#c9251c}
+.card-foot{display:flex;align-items:center;margin-top:9px}
+.avatars{display:flex;margin-left:auto}
+.avatars .av{margin-left:-6px;border:2px solid #fff}
+.av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:650;color:#fff;flex:0 0 auto;object-fit:cover;overflow:hidden;background-size:cover;background-position:center}
+.av.lg{width:34px;height:34px;font-size:13px}
+.av.sm{width:20px;height:20px;font-size:9px}
+.placeholder{background:rgba(0,113,227,.09);border:1.5px dashed rgba(0,113,227,.45);border-radius:11px}
+body.dragging, body.dragging *{user-select:none!important;-webkit-user-select:none!important}
+.card.as-placeholder{background:rgba(0,113,227,.09);border:1.5px dashed rgba(0,113,227,.45);box-shadow:none}
+.card.as-placeholder>*{visibility:hidden}
+.col-empty{color:var(--ink-3);font-size:12px;padding:6px 4px}
+.ghost{position:fixed;z-index:999;width:268px;pointer-events:none;transform:rotate(2.5deg) scale(1.02);box-shadow:var(--shadow-lg);opacity:.97}
+
+/* ---------- Modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.32);backdrop-filter:blur(3px);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+.sheet{background:var(--panel);border-radius:18px;box-shadow:var(--shadow-lg);width:min(760px,100%);animation:pop .18s ease-out}
+.sheet.narrow{width:min(440px,100%)}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.sheet-head{display:flex;align-items:flex-start;gap:10px;padding:18px 20px 12px;border-bottom:1px solid var(--line)}
+.sheet-head .x{margin-left:auto;color:var(--ink-3);font-size:18px;padding:2px 8px;border-radius:8px}
+.sheet-head .x:hover{background:var(--bg);color:var(--ink)}
+.t-title{font-size:19px;font-weight:600;letter-spacing:-.02em;border:1px solid transparent;border-radius:9px;padding:4px 7px;width:100%;background:none;resize:none;overflow:hidden}
+.t-title:hover{background:var(--bg)}
+.t-title:focus{background:#fff;border-color:#d3d3da;outline:none;box-shadow:0 0 0 3px rgba(0,113,227,.14)}
+.sheet-body{padding:16px 20px 22px;display:grid;grid-template-columns:1fr 216px;gap:22px}
+@media(max-width:720px){.sheet-body{grid-template-columns:1fr}}
+.lbl{font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:0 0 7px}
+.block{margin-bottom:20px}
+.inp{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:#fff;transition:.15s}
+.inp:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,113,227,.14)}
+textarea.inp{resize:vertical;min-height:74px;font-family:inherit}
+.btn{background:var(--accent);color:#fff;padding:8px 15px;border-radius:10px;font-weight:550;transition:.15s}
+.btn:hover{filter:brightness(1.07)}
+.btn.ghost-b{background:#ececef;color:var(--ink)}
+.btn.ghost-b:hover{background:#e2e2e6}
+.btn.danger{background:#ffeceb;color:var(--red)}
+.btn.sm{padding:5px 11px;font-size:12.5px}
+
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:9px;background:var(--bg);border:1px solid var(--line);font-size:12.5px;cursor:pointer}
+.chip:hover{border-color:#c9c9d1}
+.chip.on{background:var(--accent-soft);border-color:rgba(0,113,227,.35);color:var(--accent);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:7px}
+.swatch{width:24px;height:24px;border-radius:8px;border:2px solid transparent;cursor:pointer}
+.swatch.on{border-color:var(--ink);box-shadow:inset 0 0 0 2px #fff}
+
+.drop{border:1.5px dashed #cfcfd6;border-radius:12px;padding:18px;text-align:center;color:var(--ink-3);font-size:12.5px;transition:.15s;cursor:pointer}
+.drop.hot{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.files{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:9px}
+.file{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;width:104px}
+.file img{width:100%;height:70px;object-fit:cover;display:block}
+.file .fn{font-size:10.5px;padding:5px 6px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file .doc{height:70px;display:flex;align-items:center;justify-content:center;background:var(--bg);font-size:22px}
+.file .rm{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.55);color:#fff;width:18px;height:18px;border-radius:50%;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center}
+
+.chk{display:flex;align-items:center;gap:9px;padding:5px 4px;border-radius:8px}
+.chk:hover{background:var(--bg)}
+.chk input{width:17px;height:17px;accent-color:var(--accent);cursor:pointer;flex:0 0 auto}
+.chk span{flex:1;word-break:break-word}
+.chk span.av{flex:0 0 auto}
+.chk.done span{text-decoration:line-through;color:var(--ink-3)}
+.chk .g-x{opacity:0;color:var(--ink-3);padding:0 5px}
+.chk:hover .g-x{opacity:1}
+.bar{height:5px;border-radius:3px;background:#e6e6eb;overflow:hidden;margin-bottom:9px}
+.bar i{display:block;height:100%;background:var(--green);border-radius:3px;transition:width .25s}
+
+.note{display:flex;gap:10px;padding:9px 0}
+.note-b{flex:1;min-width:0}
+.note-head{display:flex;align-items:baseline;gap:7px;font-size:12px}
+.note-head b{font-weight:600;font-size:13px}
+.note-head time{color:var(--ink-3);font-size:11px}
+.bubble{background:var(--bg);border-radius:12px;padding:8px 11px;margin-top:3px;word-break:break-word;white-space:pre-wrap}
+.note-acts{display:flex;gap:4px;align-items:center;margin-top:5px;flex-wrap:wrap}
+.rx{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;background:#fff;border:1px solid var(--line);font-size:12px;cursor:pointer}
+.rx.mine{background:var(--accent-soft);border-color:rgba(0,113,227,.4)}
+.rx-add{color:var(--ink-3);padding:2px 7px;border-radius:20px;border:1px solid transparent;font-size:13px}
+.rx-add:hover{background:var(--bg);border-color:var(--line)}
+.link-b{font-size:11.5px;color:var(--ink-3);font-weight:550;padding:2px 6px;border-radius:6px}
+.link-b:hover{background:var(--bg);color:var(--accent)}
+.replies{margin-left:34px;border-left:2px solid var(--line);padding-left:10px}
+.picker{position:absolute;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow-lg);padding:6px;display:flex;gap:2px;z-index:200}
+.picker button{font-size:18px;padding:4px 6px;border-radius:8px}
+.picker button:hover{background:var(--bg)}
+
+/* ---------- Popovers ---------- */
+.pop{
+  position:absolute;top:48px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow-lg);width:340px;max-height:70vh;overflow:auto;z-index:60;padding:6px;
+}
+.pop h5{margin:0;padding:10px 12px 8px;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);display:flex;justify-content:space-between;align-items:center}
+.n-item{display:flex;gap:10px;padding:9px 11px;border-radius:10px;cursor:pointer;align-items:flex-start}
+.n-item:hover{background:var(--bg)}
+.n-item.unread{background:rgba(0,113,227,.06)}
+.n-item p{margin:0;font-size:13px;line-height:1.4}
+.n-item time{font-size:11px;color:var(--ink-3)}
+.toast{
+  position:fixed;top:64px;right:18px;background:rgba(30,30,32,.94);color:#fff;padding:11px 15px;border-radius:12px;
+  box-shadow:var(--shadow-lg);z-index:300;font-size:13px;max-width:320px;display:flex;gap:9px;align-items:center;
+  animation:slide .25s ease-out;cursor:pointer;backdrop-filter:blur(10px);
+}
+@keyframes slide{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+
+/* ---------- Chat ---------- */
+.drawer{position:fixed;top:56px;right:0;bottom:0;width:380px;max-width:92vw;background:var(--panel);border-left:1px solid var(--line);box-shadow:-8px 0 30px rgba(0,0,0,.08);z-index:90;display:flex;flex-direction:column;transform:translateX(102%);transition:transform .24s cubic-bezier(.32,.72,0,1)}
+.drawer.open{transform:none}
+.dr-head{height:52px;flex:0 0 52px;display:flex;align-items:center;gap:9px;padding:0 14px;border-bottom:1px solid var(--line);font-weight:600}
+.dr-body{flex:1;overflow:auto;padding:8px}
+.conv{display:flex;gap:10px;align-items:center;padding:9px 10px;border-radius:11px;cursor:pointer}
+.conv:hover{background:var(--bg)}
+.conv b{font-size:13.5px;font-weight:550;display:block}
+.conv small{color:var(--ink-3);font-size:11.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg{display:flex;gap:8px;margin-bottom:10px;align-items:flex-end}
+.msg>div{max-width:78%;display:flex;flex-direction:column}
+.msg.me>div{align-items:flex-end}
+.msg .bub{background:var(--bg);padding:8px 12px;border-radius:16px;max-width:100%;width:fit-content;word-break:break-word;white-space:pre-wrap;font-size:13.5px}
+.msg.me{flex-direction:row-reverse}
+.msg.me .bub{background:var(--accent);color:#fff}
+.msg small{font-size:10.5px;color:var(--ink-3);display:block;margin-top:3px}
+.dr-foot{flex:0 0 auto;border-top:1px solid var(--line);padding:10px;display:flex;gap:8px;align-items:flex-end}
+.dr-foot textarea{flex:1;border:1px solid var(--line);border-radius:16px;padding:9px 13px;resize:none;max-height:110px;min-height:38px}
+.dr-foot textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,113,227,.14)}
+.icon-send{width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 38px}
+.hint{color:var(--ink-3);font-size:12.5px;text-align:center;padding:26px 14px}
+.hidden{display:none!important}
+.adm-row{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
+.adm-row:last-of-type{border-bottom:0}
+.only-mobile{display:none}
+.scrim{display:none}
+
+/* ---------- Mobil ---------- */
+@media (max-width:820px){
+  .app{height:100dvh}
+  .only-mobile{display:flex;align-items:center;justify-content:center}
+  .topbar{gap:2px;padding:0 8px}
+  #brandName{display:none}
+  .lang{display:none}                       /* Sprachwahl steckt im Profilmenü */
+  .tbtn{min-width:38px;height:38px}
+
+  .search{position:fixed;top:56px;left:0;right:0;width:auto;padding:8px 10px;
+          background:rgba(255,255,255,.96);backdrop-filter:blur(16px);
+          border-bottom:1px solid var(--line);display:none;z-index:46}
+  .search.open{display:block}
+  .search .ico{left:20px;top:16px}
+  .search .clear{right:16px;top:13px}
+  .search input{height:40px}
+  .results{top:56px;left:10px;right:10px}
+
+  .scrim{display:block;position:fixed;inset:56px 0 0;background:rgba(0,0,0,.3);
+         opacity:0;pointer-events:none;transition:opacity .2s;z-index:69}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .sidebar{position:fixed;top:56px;bottom:0;left:0;z-index:70;width:min(280px,76vw);
+           background:var(--panel);box-shadow:var(--shadow-lg);
+           transform:translateX(-102%);transition:transform .24s cubic-bezier(.32,.72,0,1)}
+  .sidebar.open{transform:none}
+
+  .board-head{padding:12px 14px 4px}
+  .board-head h1{font-size:19px}
+  .board{padding:4px 12px 18px;gap:10px;scroll-snap-type:x proximity}
+  .col{width:86vw;flex:0 0 86vw;scroll-snap-align:center}
+  .add-col{width:70vw;flex:0 0 70vw}
+  .card{padding:12px 13px}
+  .card h4{font-size:14.5px}
+
+  .overlay{padding:0;align-items:stretch}
+  .sheet{width:100%;border-radius:0;min-height:100dvh}
+  .sheet.narrow{width:auto;border-radius:18px;margin:8vh 12px auto;min-height:0;align-self:flex-start}
+  .sheet-head{position:sticky;top:0;background:var(--panel);z-index:3;padding:14px 14px 10px}
+  .sheet-body{display:flex;flex-direction:column;gap:8px;padding:14px 14px 60px}
+  .sheet-body aside{order:-1;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:10px}
+
+  .drawer{width:100%;max-width:100%}
+  .toast{left:10px;right:10px;top:62px;max-width:none}
+
+  /* verhindert das automatische Hineinzoomen in Eingabefelder */
+  input,textarea,select,.inp,.t-title{font-size:16px}
+  .chk input{width:20px;height:20px}
+  .m-item,.g-item,.res,.n-item,.conv{padding-top:10px;padding-bottom:10px}
+  .g-item .g-x,.m-item .g-x,.chk .g-x,.col-menu{opacity:1}
+}
+@media (max-width:400px){ .tbtn{min-width:34px;padding:0 4px} }
+.sync-dot{width:8px;height:8px;border-radius:50%;margin-left:10px;flex:0 0 8px;background:#c7c7cc;transition:background .3s}
+.sync-dot.on{background:var(--green)}
+.sync-dot.wait{background:var(--orange)}
+.sync-dot.off{background:#c7c7cc}
+body.locked .app,body.locked .drawer{visibility:hidden}
+.gate{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.gate-card{width:min(360px,100%);background:var(--panel);border-radius:20px;box-shadow:var(--shadow);padding:30px 28px 26px;text-align:center}
+.gate-card .brand-dot{width:46px;height:46px;border-radius:14px;margin:0 auto 14px;display:block}
+.gate-card h2{margin:0 0 4px;font-size:19px;font-weight:650;letter-spacing:-.02em}
+.gate-card p{margin:0 0 20px;color:var(--ink-3);font-size:12.5px}
+.gate-card .inp{margin-bottom:10px;text-align:left}
+.gate-card .btn{width:100%;margin-top:6px;padding:10px}
+.gate-err{color:var(--red);font-size:12.5px;min-height:18px;margin-top:10px}
+.shake{animation:shake .3s}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.gate .lang{justify-content:center;margin:16px auto 0;width:max-content}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <button class="tbtn only-mobile" id="menuBtn" aria-label="Menü">☰</button>
+    <div class="brand"><span class="brand-dot"></span><span id="brandName">Projekt</span></div>
+
+    <span id="syncDot" class="sync-dot off"></span>
+    <div class="spacer"></div>
+
+    <div class="search">
+      <span class="ico">⌕</span>
+      <input id="q" type="search" autocomplete="off">
+      <div class="results" id="results"></div>
+    </div>
+
+    <button class="tbtn only-mobile" id="searchBtn">⌕</button>
+
+    <div class="rel">
+      <button class="tbtn" id="bell" title="">🔔<span class="badge hidden" id="bellBadge">0</span></button>
+      <div class="pop hidden" id="notifPop" style="right:0"></div>
+    </div>
+
+    <button class="tbtn rel" id="chatBtn">💬<span class="badge hidden" id="chatBadge">0</span></button>
+
+    <div class="lang">
+      <button data-lang="de">DE</button>
+      <button data-lang="hu">HU</button>
+    </div>
+
+    <div class="rel">
+      <button class="tbtn" id="meBtn" style="padding:0 4px"></button>
+      <div class="pop hidden" id="mePop" style="right:0;width:250px"></div>
+    </div>
+  </header>
+
+  <div class="body">
+    <div class="scrim" id="scrim"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="board-wrap">
+      <div class="board-head">
+        <h1 id="boardTitle"></h1>
+        <span class="sub" id="boardSub"></span>
+      </div>
+      <div class="board" id="board"></div>
+    </div>
+  </div>
+</div>
+
+<aside class="drawer" id="chatDrawer"></aside>
+<div id="gate" class="gate">
+  <div class="gate-card">
+    <span class="brand-dot"></span>
+    <h2 id="gTitle"></h2>
+    <p id="gSub"></p>
+    <input class="inp" id="gUser" autocomplete="username">
+    <input class="inp" id="gPass" type="password" autocomplete="current-password">
+    <button class="btn" id="gBtn"></button>
+    <div class="gate-err" id="gErr"></div>
+    <div class="lang">
+      <button data-glang="de">DE</button>
+      <button data-glang="hu">HU</button>
+    </div>
+  </div>
+</div>
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+/* =======================================================================
+   1. Sprachen (Deutsch / Ungarisch)
+   ======================================================================= */
+const I18N = {
+  de:{
+    app:"Projekt", search:"Aufgaben, Notizen, Checklisten durchsuchen…",
+    signInTitle:"Anmelden", signInSub:"Bitte melde dich an, um das Projektboard zu öffnen.",
+    userPh:"Benutzername", passPh:"Passwort", signIn:"Anmelden", signOut:"Abmelden",
+    wrong:"Benutzername oder Passwort stimmt nicht.",
+    syncOn:"Synchronisiert", syncWait:"Wird synchronisiert…", syncOff:"Nur auf diesem Gerät",
+    fileTooBig:"Die Datei ist zu groß (max. 3 MB).",
+    mailTitle:"E-Mail-Benachrichtigungen", mailOn:"Benachrichtigungen per E-Mail erhalten",
+    mailAddr:"Meine E-Mail-Adresse", mailFrom:"Nur bei Änderungen von", mailAll:"Allen im Team",
+    mailOnlyMine:"Nur bei Aufgaben, die mir zugewiesen sind",
+    mailNote:"Der Versand läuft über den Server. Höchstens eine Sammelmail pro Minute.",
+    mailSaved:"Einstellung gespeichert.", mailBad:"Bitte eine gültige E-Mail-Adresse eingeben.",
+    mailTest:"Testmail senden", mailTesting:"Wird gesendet…",
+    mailTestOk:"Testmail verschickt. Schau auch im Spam-Ordner nach.",
+    mailTestFail:"Nicht verschickt:", mailNoServer:"Dafür muss die App auf dem Server laufen.",
+    mailSelfNote:"Über eigene Änderungen wird niemand benachrichtigt – zum Testen muss eine andere Person etwas ändern.",
+    admin:"Team verwalten", adminOnly:"Nur der Inhaber darf das ändern.",
+    role:"Rolle", roleAdmin:"Inhaber", roleMember:"Mitarbeiter",
+    pw:"Passwort", pwSet:"Passwort gesetzt", pwNew:"Neues Passwort", pwNone:"noch kein Passwort",
+    pwHint:"Mindestens 6 Zeichen. Der Mitarbeiter meldet sich mit E-Mail und Passwort an.",
+    visibility:"Sichtbar für", visAll:"Alle im Team", visSome:"Nur ausgewählte",
+    visNote:"Wer eine Aufgabe nicht sehen darf, bekommt sie auch nicht auf das Gerät geschickt.",
+    tasksOf:"Aufgaben von", visTasks:"Sichtbare Aufgaben", assignedAlways:"zugewiesen – immer sichtbar",
+    newMember:"Neuer Mitarbeiter", memberSaved:"Mitarbeiter gespeichert.",
+    needEmail:"Bitte Name, E-Mail und Passwort angeben.", loginUser:"E-Mail oder Benutzername",
+    hidden:"verborgen", of:"von", changePw:"Passwort ändern", leaveEmpty:"leer lassen = unverändert",
+    backup:"Sicherung speichern", restore:"Sicherung einspielen",
+    backupNote:"Die Sicherung enthält alle Projekte, Aufgaben, Notizen und Anhänge – aber keine Passwörter. Nach dem Einspielen auf einem neuen Server müssen die Passwörter der Mitarbeiter neu gesetzt werden.",
+    restoreAsk:"Der aktuelle Stand wird durch die Sicherung ersetzt. Fortfahren?",
+    restoreOk:"Sicherung eingespielt.", restoreBad:"Diese Datei ist keine gültige Sicherung.",
+    groups:"Aufgabengruppen", newGroup:"Neue Gruppe", team:"Team", addMember:"Mitglied hinzufügen",
+    newColumn:"Neues Task-Feld", newTask:"Neue Aufgabe", tasks:"Aufgaben", column:"Task-Feld", columns:"Task-Felder",
+    notifications:"Benachrichtigungen", markAll:"Alle gelesen", noNotifications:"Noch keine Änderungen",
+    chats:"Chats", newChatGroup:"Neue Chatgruppe", chatPlaceholder:"Nachricht schreiben…", noChat:"Wähle einen Chat oder starte einen neuen.",
+    loggedInAs:"Angemeldet als", switchUser:"Benutzer wechseln",
+    title:"Titel", description:"Beschreibung", descriptionPh:"Worum geht es?",
+    priority:"Priorität", high:"Hoch", medium:"Mittel", low:"Niedrig", none:"Keine",
+    due:"Fällig am", color:"Farbe", assignees:"Zugewiesen", checklist:"Checkliste",
+    addCheck:"Punkt hinzufügen", attachments:"Anhänge", dropHere:"Dokumente oder Bilder hierher ziehen", pickFile:"Datei oder Foto auswählen",
+    orClick:"oder klicken zum Auswählen", notes:"Notizen", notePh:"Notiz schreiben…",
+    reply:"Antworten", replyPh:"Antwort schreiben…", send:"Senden", cancel:"Abbrechen",
+    save:"Speichern", del:"Löschen", deleteTask:"Aufgabe löschen", rename:"Umbenennen",
+    today:"Heute", overdue:"Überfällig", tomorrow:"Morgen",
+    namePh:"Name", groupNamePh:"Name der Gruppe", columnNamePh:"Name des Task-Feldes", taskNamePh:"Was ist zu tun?",
+    photo:"Foto", members:"Mitglieder", create:"Erstellen", chatGroupName:"Gruppenname",
+    resultsTasks:"Aufgaben", resultsNotes:"Notizen", resultsChecks:"Checklisten-Punkte", noResults:"Keine Ergebnisse",
+    inCol:"in", confirmDelete:"Wirklich löschen?", emptyCol:"Noch keine Aufgaben",
+    open:"Öffnen", by:"von", saveError:"Änderung konnte nicht gespeichert werden (Anhang zu groß).",
+    n_created:"{u} hat „{t}“ erstellt", n_moved:"{u} hat „{t}“ nach „{c}“ verschoben",
+    n_note:"{u} hat „{t}“ kommentiert", n_due:"{u} hat die Fälligkeit von „{t}“ geändert",
+    n_file:"{u} hat eine Datei zu „{t}“ hinzugefügt", n_assign:"{u} hat {m} zu „{t}“ hinzugefügt",
+    n_prio:"{u} hat die Priorität von „{t}“ geändert", n_check:"{u} hat einen Checklisten-Punkt in „{t}“ geändert",
+    n_react:"{u} hat auf eine Notiz in „{t}“ reagiert", n_del:"{u} hat „{t}“ gelöscht"
+  },
+  hu:{
+    app:"Projekt", search:"Feladatok, jegyzetek, listák keresése…",
+    signInTitle:"Bejelentkezés", signInSub:"Jelentkezz be a projekttábla megnyitásához.",
+    userPh:"Felhasználónév", passPh:"Jelszó", signIn:"Belépés", signOut:"Kijelentkezés",
+    wrong:"Hibás felhasználónév vagy jelszó.",
+    syncOn:"Szinkronizálva", syncWait:"Szinkronizálás…", syncOff:"Csak ezen az eszközön",
+    fileTooBig:"A fájl túl nagy (max. 3 MB).",
+    mailTitle:"E-mail értesítések", mailOn:"Értesítést kérek e-mailben",
+    mailAddr:"Az e-mail címem", mailFrom:"Csak ezek változtatásairól", mailAll:"Mindenki",
+    mailOnlyMine:"Csak a nekem kiosztott feladatokról",
+    mailNote:"A küldés a szerveren keresztül történik, percenként legfeljebb egy összesített levél.",
+    mailSaved:"A beállítás elmentve.", mailBad:"Adj meg érvényes e-mail címet.",
+    mailTest:"Teszt e-mail küldése", mailTesting:"Küldés…",
+    mailTestOk:"Teszt elküldve. Nézd meg a spam mappát is.",
+    mailTestFail:"Nem sikerült:", mailNoServer:"Ehhez a szerveren kell futnia az alkalmazásnak.",
+    mailSelfNote:"A saját módosításokról senki nem kap értesítést – teszthez másnak kell változtatnia.",
+    admin:"Csapat kezelése", adminOnly:"Ezt csak a tulajdonos módosíthatja.",
+    role:"Szerepkör", roleAdmin:"Tulajdonos", roleMember:"Munkatárs",
+    pw:"Jelszó", pwSet:"jelszó beállítva", pwNew:"Új jelszó", pwNone:"még nincs jelszó",
+    pwHint:"Legalább 6 karakter. A munkatárs e-mail címmel és jelszóval lép be.",
+    visibility:"Kinek látható", visAll:"Mindenkinek", visSome:"Csak a kiválasztottaknak",
+    visNote:"Akinek nem látható a feladat, annak az eszközére el sem jut.",
+    tasksOf:"Feladatai:", visTasks:"Látható feladatok", assignedAlways:"hozzárendelve – mindig látja",
+    newMember:"Új munkatárs", memberSaved:"Munkatárs elmentve.",
+    needEmail:"Adj meg nevet, e-mail címet és jelszót.", loginUser:"E-mail vagy felhasználónév",
+    hidden:"rejtett", of:"–", changePw:"Jelszó módosítása", leaveEmpty:"üresen hagyva változatlan",
+    backup:"Biztonsági mentés", restore:"Mentés visszatöltése",
+    backupNote:"A mentés minden projektet, feladatot, jegyzetet és mellékletet tartalmaz – jelszavakat nem. Új szerverre visszatöltés után a munkatársak jelszavát újra be kell állítani.",
+    restoreAsk:"A jelenlegi állapot helyére a mentés kerül. Folytatod?",
+    restoreOk:"A mentés visszatöltve.", restoreBad:"Ez a fájl nem érvényes mentés.",
+    groups:"Feladatcsoportok", newGroup:"Új csoport", team:"Csapat", addMember:"Tag hozzáadása",
+    newColumn:"Új feladatmező", newTask:"Új feladat", tasks:"Feladat", column:"Feladatmező", columns:"feladatmező",
+    notifications:"Értesítések", markAll:"Mind olvasott", noNotifications:"Még nincs változás",
+    chats:"Csevegés", newChatGroup:"Új csevegőcsoport", chatPlaceholder:"Írj üzenetet…", noChat:"Válassz beszélgetést, vagy indíts újat.",
+    loggedInAs:"Bejelentkezve mint", switchUser:"Felhasználóváltás",
+    title:"Cím", description:"Leírás", descriptionPh:"Miről szól?",
+    priority:"Prioritás", high:"Magas", medium:"Közepes", low:"Alacsony", none:"Nincs",
+    due:"Határidő", color:"Szín", assignees:"Hozzárendelve", checklist:"Ellenőrzőlista",
+    addCheck:"Új pont", attachments:"Mellékletek", dropHere:"Húzd ide a dokumentumokat vagy képeket", pickFile:"Fájl vagy fénykép kiválasztása",
+    orClick:"vagy kattints a tallózáshoz", notes:"Jegyzetek", notePh:"Írj jegyzetet…",
+    reply:"Válasz", replyPh:"Írj választ…", send:"Küldés", cancel:"Mégse",
+    save:"Mentés", del:"Törlés", deleteTask:"Feladat törlése", rename:"Átnevezés",
+    today:"Ma", overdue:"Lejárt", tomorrow:"Holnap",
+    namePh:"Név", groupNamePh:"A csoport neve", columnNamePh:"A feladatmező neve", taskNamePh:"Mi a teendő?",
+    photo:"Fénykép", members:"Tagok", create:"Létrehozás", chatGroupName:"Csoport neve",
+    resultsTasks:"Feladatok", resultsNotes:"Jegyzetek", resultsChecks:"Ellenőrzőlista-pontok", noResults:"Nincs találat",
+    inCol:"itt:", confirmDelete:"Biztosan törlöd?", emptyCol:"Még nincs feladat",
+    open:"Megnyitás", by:"–", saveError:"A módosítás nem menthető (túl nagy melléklet).",
+    n_created:"{u} létrehozta: „{t}“", n_moved:"{u} áthelyezte a(z) „{t}“ feladatot ide: „{c}“",
+    n_note:"{u} hozzászólt ehhez: „{t}“", n_due:"{u} módosította a határidőt: „{t}“",
+    n_file:"{u} fájlt csatolt ehhez: „{t}“", n_assign:"{u} hozzáadta {m} tagot ehhez: „{t}“",
+    n_prio:"{u} módosította a prioritást: „{t}“", n_check:"{u} módosított egy pontot itt: „{t}“",
+    n_react:"{u} reagált egy jegyzetre itt: „{t}“", n_del:"{u} törölte: „{t}“"
+  }
+};
+const t = (k,p={}) => {
+  let s = (I18N[S.lang] && I18N[S.lang][k]) || I18N.de[k] || k;
+  for (const key in p) s = s.split("{"+key+"}").join(p[key]);
+  return s;
+};
+// Zweisprachige Startinhalte: {de:"…",hu:"…"} -> String
+const L = v => (v && typeof v === "object") ? (v[S.lang] || v.de) : (v || "");
+
+/* =======================================================================
+   2. Konstanten
+   ======================================================================= */
+const COLORS = ["#ff3b30","#ff9500","#ffcc00","#34c759","#0071e3","#af52de","#ff2d55","#8e8e93"];
+const AVCOL  = ["#0071e3","#34c759","#ff9500","#af52de","#ff2d55","#5ac8fa","#ff3b30","#30b0c7"];
+const EMOJI  = ["👍","❤️","😄","🎉","👀","✅","🙏","🔥"];
+const TOUCH = !!(window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
+const uid = () => Math.random().toString(36).slice(2,10);
+const now = () => Date.now();
+/* mt = Zeitpunkt der letzten Änderung. Damit entscheidet die Zusammenführung,
+   welche Version gewinnt, wenn zwei Personen gleichzeitig etwas ändern. */
+const touch = o => { if(o) o.mt = now(); return o; };
+const bury  = id => { (S.tomb || (S.tomb={}))[id] = now(); };   // Löschvermerk
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* =======================================================================
+   3. Zustand + Speicherung
+   ======================================================================= */
+let S = seed();
+
+function seed(){
+  const m1={id:uid(),name:"Anna Berger",color:AVCOL[0],avatar:null,role:"admin",email:"",mt:Date.now()};
+  const m2={id:uid(),name:"Kovács Péter",color:AVCOL[1],avatar:null,role:"member",email:"",mt:Date.now()};
+  const m3={id:uid(),name:"Lukas Wagner",color:AVCOL[2],avatar:null,role:"member",email:"",mt:Date.now()};
+  const today=new Date(); const d=n=>{const x=new Date(today);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)};
+  return {
+    lang:"de", meId:m1.id, isAdmin:true, members:[m1,m2,m3],
+    groups:[{
+      id:uid(), name:{de:"Website Relaunch",hu:"Weboldal megújítás"},
+      columns:[
+        {id:uid(), name:{de:"Zu erledigen",hu:"Teendő"}, color:"#8e8e93", tasks:[
+          {id:uid(), title:{de:"Startseite gestalten",hu:"Kezdőlap megtervezése"}, desc:{de:"Entwurf für die neue Startseite inkl. Bildern.",hu:"Vázlat az új kezdőlaphoz képekkel."},
+           color:"#0071e3", priority:"high", due:d(2), assignees:[m1.id,m3.id], attachments:[],
+           checklist:[{id:uid(),text:{de:"Moodboard sammeln",hu:"Hangulattábla összeállítása"},done:true},{id:uid(),text:{de:"Farbschema festlegen",hu:"Színséma meghatározása"},done:false}],
+           notes:[{id:uid(),author:m2.id,text:{de:"Bitte auf die neuen Logos achten.",hu:"Kérlek, figyelj az új logókra."},ts:Date.now()-7200000,parent:null,rx:{}}], created:Date.now()-86400000},
+          {id:uid(), title:{de:"Texte übersetzen (HU)",hu:"Szövegek fordítása (DE)"}, desc:"", color:"#ffcc00", priority:"medium", due:d(5),
+           assignees:[m2.id], attachments:[], checklist:[], notes:[], created:Date.now()-3600000}
+        ]},
+        {id:uid(), name:{de:"In Arbeit",hu:"Folyamatban"}, color:"#0071e3", tasks:[
+          {id:uid(), title:{de:"Bildmaterial sortieren",hu:"Képanyag rendezése"}, desc:"", color:"#34c759", priority:"low", due:d(0),
+           assignees:[m3.id], attachments:[], checklist:[], notes:[], created:Date.now()-172800000}
+        ]},
+        {id:uid(), name:{de:"Prüfung",hu:"Ellenőrzés"}, color:"#ff9500", tasks:[]},
+        {id:uid(), name:{de:"Fertig",hu:"Kész"}, color:"#34c759", tasks:[
+          {id:uid(), title:{de:"Domain umziehen",hu:"Domain átköltöztetése"}, desc:"", color:null, priority:null, due:null,
+           assignees:[m1.id], attachments:[], checklist:[], notes:[], created:Date.now()-259200000}
+        ]}
+      ]
+    },{
+      id:uid(), name:{de:"Marketing 2026",hu:"Marketing 2026"},
+      columns:[
+        {id:uid(), name:{de:"Ideen",hu:"Ötletek"}, color:"#af52de", tasks:[]},
+        {id:uid(), name:{de:"Geplant",hu:"Tervezett"}, color:"#0071e3", tasks:[]},
+        {id:uid(), name:{de:"Fertig",hu:"Kész"}, color:"#34c759", tasks:[]}
+      ]
+    }],
+    activeGroup:null, notifications:[], chats:[], activeChat:null, tomb:{}, readIds:[], watchers:[]
+  };
+}
+S.activeGroup = S.groups[0].id;
+
+/* Speicher: nutzt window.storage (Claude-Artefakt) oder localStorage (Webserver).
+   Ohne beides läuft die App weiter, merkt sich die Daten aber nur bis zum Neuladen. */
+const LS = (()=>{ try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); return localStorage; }catch(e){ return null; } })();
+const KV = {
+  mode: (typeof window!=="undefined" && window.storage && typeof window.storage.get==="function") ? "api" : (LS ? "local" : "none"),
+  async get(k){
+    if(this.mode==="api"){ try{ const r=await window.storage.get(k); return r?r.value:null; }catch(e){ return null; } }
+    if(this.mode==="local"){ try{ return LS.getItem(k); }catch(e){ return null; } }
+    return null;
+  },
+  async set(k,v){
+    if(this.mode==="api"){ try{ await window.storage.set(k,v); return true; }catch(e){ return false; } }
+    if(this.mode==="local"){ try{ LS.setItem(k,v); return true; }catch(e){ return false; } }
+    return false;
+  },
+  async del(k){
+    if(this.mode==="api"){ try{ await window.storage.delete(k); }catch(e){} }
+    if(this.mode==="local"){ try{ LS.removeItem(k); }catch(e){} }
+  }
+};
+const Store = {
+  ok: KV.mode!=="none",
+  timer:null,
+  async load(){
+    const v = await KV.get("pm_state_v1");
+    try{ return v ? JSON.parse(v) : null; }catch(e){ return null; }
+  },
+  save(){
+    if(!this.ok) return;
+    clearTimeout(this.timer);
+    this.timer = setTimeout(async()=>{
+      const ok = await KV.set("pm_state_v1", JSON.stringify(shared()));
+      if(!ok) toast(t("saveError"));
+    },500);
+  }
+};
+
+/* Geräteeinstellungen bleiben lokal – Sprache und angemeldete Person
+   sollen sich nicht auf die anderen Geräte übertragen. */
+const Prefs = {
+  save(){ KV.set("pm_prefs_v1", JSON.stringify({lang:S.lang, meId:S.meId, isAdmin:S.isAdmin, activeGroup:S.activeGroup, readIds:(S.readIds||[]).slice(-300)})); },
+  async load(){
+    const v = await KV.get("pm_prefs_v1");
+    try{ return v ? JSON.parse(v) : null; }catch(e){ return null; }
+  }
+};
+
+/* Gemeinsame Daten (werden synchronisiert) */
+const SHARED_KEYS = ["members","groups","chats","notifications","tomb","watchers"];
+function shared(){ const o={}; SHARED_KEYS.forEach(k=>o[k]=S[k]); return o; }
+/* Neu gesetzte Passwörter werden einmal übertragen und dann örtlich entfernt */
+function clearPwNew(){ (S.members||[]).forEach(m=>{ if(m.pwNew){ delete m.pwNew; m.hasPw=true; } }); }
+
+function save(){ Store.save(); Prefs.save(); SYNC.push(); }
+
+/* =======================================================================
+   4. Hilfsfunktionen
+   ======================================================================= */
+const group = () => S.groups.find(g=>g.id===S.activeGroup) || S.groups[0];
+/* Darf die angemeldete Person diese Aufgabe sehen?
+   Der Server filtert bereits – das hier hält die Anzeige stimmig. */
+const canSee = x => S.isAdmin || !Array.isArray(x.visible)
+                    || x.visible.includes(S.meId) || (x.assignees||[]).includes(S.meId);
+const seenTasks = c => (c.tasks||[]).filter(canSee);
+const member = id => S.members.find(m=>m.id===id);
+const me = () => member(S.meId) || S.members[0];
+function findTask(id){
+  for(const g of S.groups) for(const c of g.columns){
+    const i = c.tasks.findIndex(x=>x.id===id);
+    if(i>-1) return {g,c,task:c.tasks[i],i};
+  }
+  return null;
+}
+function initials(n){ return (n||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase(); }
+function avatar(m,cls=""){
+  if(!m) return "";
+  if(m.avatar) return `<span class="av ${cls}" style="background-image:url('${m.avatar}')" title="${esc(m.name)}"></span>`;
+  return `<span class="av ${cls}" style="background:${m.color}" title="${esc(m.name)}">${esc(initials(m.name))}</span>`;
+}
+function dayDiff(iso){
+  if(!iso) return null;
+  const a=new Date(iso+"T00:00:00"), b=new Date(); b.setHours(0,0,0,0);
+  return Math.round((a-b)/86400000);
+}
+function dueLabel(iso){
+  const d=dayDiff(iso);
+  if(d===0) return t("today");
+  if(d===1) return t("tomorrow");
+  return new Date(iso+"T00:00:00").toLocaleDateString(S.lang==="hu"?"hu-HU":"de-DE",{day:"2-digit",month:"short"});
+}
+function timeAgo(ts){
+  const s=Math.floor((Date.now()-ts)/1000);
+  const loc = S.lang==="hu"?"hu-HU":"de-DE";
+  if(s<60) return S.lang==="hu"?"most":"gerade eben";
+  if(s<3600) return Math.floor(s/60)+" min";
+  if(s<86400) return Math.floor(s/3600)+" h";
+  return new Date(ts).toLocaleDateString(loc,{day:"2-digit",month:"2-digit"});
+}
+function prioMeta(p){
+  if(p==="high")   return {label:t("high"),  bg:"#ffeceb", fg:"#c9251c"};
+  if(p==="medium") return {label:t("medium"),bg:"#fff4e5", fg:"#b25e00"};
+  if(p==="low")    return {label:t("low"),   bg:"#e9f8ee", fg:"#1a7f37"};
+  return null;
+}
+
+/* =======================================================================
+   5. Benachrichtigungen (Klingel + kurzer Hinweis)
+   ======================================================================= */
+function notify(key, params, taskId){
+  S.notifications.unshift({id:uid(), key, params, taskId, ts:now(), by:S.meId});
+  S.notifications = S.notifications.slice(0,60);
+  SYNC.seenTs = now();
+  renderBell();
+  toast(t(key,params), taskId);
+  save();
+}
+const isRead = id => (S.readIds||[]).includes(id);
+function toast(text, taskId){
+  const root=document.getElementById("toastRoot");
+  const el=document.createElement("div");
+  el.className="toast";
+  el.innerHTML = `<span>🔔</span><span>${esc(text)}</span>`;
+  if(window.innerWidth>820 && document.getElementById("chatDrawer").classList.contains("open")) el.style.right="398px";
+  if(taskId) el.onclick=()=>{ openTask(taskId); el.remove(); };
+  root.appendChild(el);
+  setTimeout(()=>{ el.style.transition="opacity .3s"; el.style.opacity="0"; setTimeout(()=>el.remove(),320); }, 4200);
+}
+</script>
+<script>
+/* =======================================================================
+   6. Kleine Dialoge (prompt/confirm-Ersatz)
+   ======================================================================= */
+function askText(title, placeholder, initial){
+  return new Promise(res=>{
+    const root=document.getElementById("modalRoot");
+    const w=document.createElement("div");
+    w.className="overlay";
+    w.innerHTML=`<div class="sheet narrow" style="margin-top:8vh">
+      <div class="sheet-head"><b style="font-size:16px">${esc(title)}</b><button class="x">✕</button></div>
+      <div style="padding:16px 20px 20px">
+        <input class="inp" id="askIn" placeholder="${esc(placeholder||"")}" value="${esc(initial||"")}">
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+          <button class="btn ghost-b" data-c>${esc(t("cancel"))}</button>
+          <button class="btn" data-ok>${esc(t("save"))}</button>
+        </div>
+      </div></div>`;
+    root.appendChild(w);
+    const inp=w.querySelector("#askIn"); inp.focus(); inp.select();
+    const done=v=>{ w.remove(); res(v); };
+    w.querySelector(".x").onclick=()=>done(null);
+    w.querySelector("[data-c]").onclick=()=>done(null);
+    w.querySelector("[data-ok]").onclick=()=>done(inp.value.trim()||null);
+    w.onclick=e=>{ if(e.target===w) done(null); };
+    inp.onkeydown=e=>{ if(e.key==="Enter") done(inp.value.trim()||null); if(e.key==="Escape") done(null); };
+  });
+}
+function askConfirm(text){
+  return new Promise(res=>{
+    const root=document.getElementById("modalRoot");
+    const w=document.createElement("div");
+    w.className="overlay";
+    w.innerHTML=`<div class="sheet narrow" style="margin-top:12vh">
+      <div style="padding:22px 20px 18px;font-size:15px">${esc(text)}</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;padding:0 20px 20px">
+        <button class="btn ghost-b" data-c>${esc(t("cancel"))}</button>
+        <button class="btn danger" data-ok>${esc(t("del"))}</button>
+      </div></div>`;
+    root.appendChild(w);
+    const done=v=>{ w.remove(); res(v); };
+    w.querySelector("[data-c]").onclick=()=>done(false);
+    w.querySelector("[data-ok]").onclick=()=>done(true);
+    w.onclick=e=>{ if(e.target===w) done(false); };
+  });
+}
+
+/* =======================================================================
+   7. Rendering
+   ======================================================================= */
+function render(){
+  document.documentElement.lang = S.lang;
+  document.getElementById("brandName").textContent = t("app");
+  document.getElementById("q").placeholder = t("search");
+  document.getElementById("bell").title = t("notifications");
+  document.getElementById("chatBtn").title = t("chats");
+  document.querySelectorAll(".lang button").forEach(b=>b.classList.toggle("on", b.dataset.lang===S.lang));
+  renderSidebar(); renderBoard(); renderBell(); renderMe(); renderChat();
+}
+
+function renderMe(){
+  document.getElementById("meBtn").innerHTML = avatar(me());
+  const p=document.getElementById("mePop");
+  const m=me();
+  p.innerHTML = `
+    <div class="m-item" style="cursor:default">${avatar(m,"lg")}
+      <span style="flex:1"><b style="display:block">${esc(m?m.name:"?")}</b>
+      <small style="color:var(--ink-3)">${esc(S.isAdmin?t("roleAdmin"):t("roleMember"))}</small></span>
+    </div>
+    <div style="border-top:1px solid var(--line);margin:6px 0"></div>
+    <div class="m-item" style="gap:6px">
+      <span style="width:24px;text-align:center">🌐</span>
+      <span class="lang" style="display:flex">
+        <button data-lang="de" class="${S.lang==="de"?"on":""}" onclick="event.stopPropagation();setLang('de')">DE</button>
+        <button data-lang="hu" class="${S.lang==="hu"?"on":""}" onclick="event.stopPropagation();setLang('hu')">HU</button>
+      </span>
+    </div>
+    ${S.isAdmin?`<div class="m-item" onclick="openAdmin()"><span style="width:24px;text-align:center">👥</span><span>${esc(t("admin"))}</span></div>`:""}
+    <div class="m-item" onclick="openMailSettings()"><span style="width:24px;text-align:center">✉</span><span>${esc(t("mailTitle"))}</span></div>
+    <div class="m-item" onclick="signOut()"><span style="width:24px;text-align:center">⎋</span><span>${esc(t("signOut"))}</span></div>`;
+}
+
+function setLang(l){ S.lang=l; render(); Prefs.save(); setStatus(SYNC.mode==="on"?"on":"off"); }
+function setMe(id){ S.meId=id; document.getElementById("mePop").classList.add("hidden"); render(); Prefs.save(); }
+
+function renderSidebar(){
+  const el=document.getElementById("sidebar");
+  el.innerHTML = `
+    <div>
+      <div class="side-h"><span>${esc(t("groups"))}</span>${S.isAdmin?`<button onclick="addGroup()" title="${esc(t("newGroup"))}">+</button>`:""}</div>
+      ${S.groups.map(g=>`
+        <div class="g-item ${g.id===S.activeGroup?"on":""}" onclick="selectGroup('${g.id}')">
+          <span>▦</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(L(g.name))}</span>
+          ${S.isAdmin?`<button class="g-x" onclick="event.stopPropagation();delGroup('${g.id}')">✕</button>`:""}
+        </div>`).join("")}
+      ${S.isAdmin?`<button class="side-add" onclick="addGroup()">+ ${esc(t("newGroup"))}</button>`:""}
+    </div>
+    <div>
+      <div class="side-h"><span>${esc(t("team"))}</span>${S.isAdmin?`<button onclick="openAdmin()" title="${esc(t("admin"))}">+</button>`:""}</div>
+      ${S.members.map(m=>`
+        <div class="m-item" onclick="openDM('${m.id}')" title="${esc(t("chats"))}">
+          ${avatar(m)}<span>${esc(m.name)}</span>
+          ${m.role==="admin"?'<span style="margin-left:auto;font-size:10px;color:var(--ink-3)">★</span>':""}
+        </div>`).join("")}
+      ${S.isAdmin?`<button class="side-add" onclick="openAdmin()">+ ${esc(t("addMember"))}</button>`:""}
+    </div>`;
+}
+
+function renderBoard(){
+  const g=group();
+  const keepScroll=document.getElementById("board").scrollLeft;
+  document.getElementById("boardTitle").textContent = L(g.name);
+  const total = g.columns.reduce((s,c)=>s+seenTasks(c).length,0);
+  document.getElementById("boardSub").textContent = `${total} ${t("tasks")} · ${g.columns.length} ${t("columns")}`;
+
+  document.getElementById("board").innerHTML = g.columns.map(c=>`
+    <section class="col" data-col="${c.id}">
+      <div class="col-head">
+        <span class="col-dot" style="background:${c.color||"#8e8e93"}"></span>
+        <span class="col-title" onclick="${S.isAdmin?`renameColumn('${c.id}')`:""}">${esc(L(c.name))}</span>
+        <span class="col-count">${seenTasks(c).length}</span>
+        ${S.isAdmin?`<button class="col-menu" onclick="delColumn('${c.id}')" title="${esc(t("del"))}">✕</button>`:""}
+      </div>
+      <div class="col-body" data-body="${c.id}">
+        ${seenTasks(c).map(cardHTML).join("") || `<div class="col-empty">${esc(t("emptyCol"))}</div>`}
+      </div>
+      <button class="col-add" onclick="addTask('${c.id}')">+ ${esc(t("newTask"))}</button>
+    </section>`).join("")
+    + (S.isAdmin ? `<button class="add-col" onclick="addColumn()">+ ${esc(t("newColumn"))}</button>` : "");
+  document.getElementById("board").scrollLeft=keepScroll;
+}
+
+function cardHTML(x){
+  const p=prioMeta(x.priority);
+  const dd=dayDiff(x.due);
+  const dueCls = dd===null?"":(dd<0?"due over":(dd===0?"due today":"due"));
+  const checks=x.checklist||[], done=checks.filter(c=>c.done).length;
+  const notes=(x.notes||[]).length, files=(x.attachments||[]).length;
+  return `<article class="card ${x.color?"has-color":""}" data-id="${x.id}" onclick="cardClick(event,'${x.id}')">
+    ${x.color?`<span class="card-stripe" style="background:${x.color}"></span>`:""}
+    ${p?`<div class="card-top"><span class="pill" style="background:${p.bg};color:${p.fg}">${esc(p.label)}</span></div>`:""}
+    <h4>${esc(L(x.title))}</h4>
+    <div class="card-meta">
+      ${x.due?`<span class="${dueCls}">${esc(dueLabel(x.due))}</span>`:""}
+      ${checks.length?`<span class="mi">☑ ${done}/${checks.length}</span>`:""}
+      ${notes?`<span class="mi">💬 ${notes}</span>`:""}
+      ${files?`<span class="mi">📎 ${files}</span>`:""}
+      ${(S.isAdmin&&Array.isArray(x.visible))?`<span class="mi" title="${esc(t("visSome"))}">🔒</span>`:""}
+    </div>
+    <div class="card-foot"><div class="avatars">${(x.assignees||[]).map(id=>avatar(member(id),"sm")).join("")}</div></div>
+  </article>`;
+}
+
+function visibleNotifs(){
+  if(S.isAdmin) return S.notifications;
+  return S.notifications.filter(n=>{ const f=n.taskId&&findTask(n.taskId); return f && canSee(f.task); });
+}
+function renderBell(){
+  const list=visibleNotifs();
+  const un=list.filter(n=>!isRead(n.id)).length;
+  const b=document.getElementById("bellBadge");
+  b.textContent=un; b.classList.toggle("hidden", un===0);
+  const p=document.getElementById("notifPop");
+  p.innerHTML = `<h5><span>${esc(t("notifications"))}</span>${list.length?`<button class="link-b" onclick="readAll()">${esc(t("markAll"))}</button>`:""}</h5>`
+   + (list.length ? list.map(n=>`
+      <div class="n-item ${isRead(n.id)?"":"unread"}" onclick="openFromNotif('${n.id}')">
+        <span style="font-size:15px">🔔</span>
+        <div style="flex:1"><p>${esc(t(n.key,n.params))}</p><time>${esc(timeAgo(n.ts))}</time></div>
+      </div>`).join("")
+     : `<div class="hint">${esc(t("noNotifications"))}</div>`);
+}
+function readAll(){
+  S.readIds = [...new Set([...(S.readIds||[]), ...S.notifications.map(n=>n.id)])].slice(-300);
+  renderBell(); Prefs.save();
+}
+function openFromNotif(id){
+  const n=S.notifications.find(x=>x.id===id); if(!n) return;
+  S.readIds=[...new Set([...(S.readIds||[]), id])].slice(-300); renderBell(); Prefs.save();
+  document.getElementById("notifPop").classList.add("hidden");
+  if(n.taskId && findTask(n.taskId)) openTask(n.taskId);
+}
+
+/* =======================================================================
+   8. Gruppen / Task-Felder / Aufgaben
+   ======================================================================= */
+function selectGroup(id){ S.activeGroup=id; closeSidebar(); render(); Prefs.save(); }
+function closeSidebar(){
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("scrim").classList.remove("on");
+}
+function toggleSidebar(){
+  const s=document.getElementById("sidebar"), sc=document.getElementById("scrim");
+  const on=!s.classList.contains("open");
+  s.classList.toggle("open",on); sc.classList.toggle("on",on);
+}
+async function addGroup(){
+  const n=await askText(t("newGroup"), t("groupNamePh"));
+  if(!n) return;
+  const g=touch({id:uid(),name:n,columns:[
+    touch({id:uid(),name:t("newColumn"),color:"#8e8e93",tasks:[]})
+  ]});
+  S.groups.push(g); S.activeGroup=g.id; render(); save();
+}
+async function delGroup(id){
+  if(S.groups.length<2) return;
+  if(!await askConfirm(t("confirmDelete"))) return;
+  bury(id); S.groups=S.groups.filter(g=>g.id!==id);
+  if(S.activeGroup===id) S.activeGroup=S.groups[0].id;
+  render(); save();
+}
+async function addColumn(){
+  const n=await askText(t("newColumn"), t("columnNamePh"));
+  if(!n) return;
+  group().columns.push(touch({id:uid(),name:n,color:COLORS[group().columns.length%COLORS.length],tasks:[]}));
+  renderBoard(); save();
+}
+async function renameColumn(id){
+  const c=group().columns.find(c=>c.id===id);
+  const n=await askText(t("rename"), t("columnNamePh"), L(c.name));
+  if(!n) return; c.name=n; touch(c); renderBoard(); save();
+}
+async function delColumn(id){
+  if(!await askConfirm(t("confirmDelete"))) return;
+  bury(id); group().columns=group().columns.filter(c=>c.id!==id);
+  renderBoard(); save();
+}
+async function addTask(colId){
+  const n=await askText(t("newTask"), t("taskNamePh"));
+  if(!n) return;
+  const c=group().columns.find(c=>c.id===colId);
+  const task=touch({id:uid(),title:n,desc:"",color:null,priority:null,due:null,assignees:[],attachments:[],checklist:[],notes:[],created:now()});
+  c.tasks.unshift(task);
+  renderBoard(); notify("n_created",{u:me().name,t:n},task.id); save();
+}
+
+/* =======================================================================
+   9. Aufgaben-Dialog
+   ======================================================================= */
+let replyTo=null, pickerFor=null;
+
+function cardClick(e,id){ if(!dragMoved) openTask(id); }
+
+function openTask(id){
+  replyTo=null; pickerFor=null;
+  const f=findTask(id); if(!f) return;
+  let w=document.getElementById("taskOverlay");
+  if(!w){
+    w=document.createElement("div"); w.className="overlay"; w.id="taskOverlay";
+    document.getElementById("modalRoot").appendChild(w);
+    w.onclick=e=>{ if(e.target===w) closeTask(); };
+    document.addEventListener("keydown", escClose);
+  }
+  w.dataset.task=id;
+  drawTask();
+}
+function escClose(e){ if(e.key==="Escape") closeTask(); }
+function closeTask(){
+  const w=document.getElementById("taskOverlay");
+  if(w) w.remove();
+  document.removeEventListener("keydown", escClose);
+}
+function currentTask(){
+  const w=document.getElementById("taskOverlay");
+  return w ? findTask(w.dataset.task) : null;
+}
+
+function drawTask(){
+  const w=document.getElementById("taskOverlay"); if(!w) return;
+  const f=findTask(w.dataset.task); if(!f) { closeTask(); return; }
+  const x=f.task, g=f.g;
+  const checks=x.checklist||[], done=checks.filter(c=>c.done).length;
+  const pct=checks.length?Math.round(done/checks.length*100):0;
+
+  w.innerHTML=`<div class="sheet">
+    <div class="sheet-head">
+      <span class="col-dot" style="background:${x.color||f.c.color||"#8e8e93"};margin-top:12px"></span>
+      <textarea class="t-title" rows="1" id="tTitle">${esc(L(x.title))}</textarea>
+      <button class="x" onclick="closeTask()">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div>
+        <div class="block">
+          <p class="lbl">${esc(t("description"))}</p>
+          <textarea class="inp" id="tDesc" placeholder="${esc(t("descriptionPh"))}">${esc(L(x.desc))}</textarea>
+        </div>
+
+        <div class="block">
+          <p class="lbl">${esc(t("checklist"))} ${checks.length?`· ${done}/${checks.length}`:""}</p>
+          ${checks.length?`<div class="bar"><i style="width:${pct}%"></i></div>`:""}
+          ${checks.map(c=>`<label class="chk ${c.done?"done":""}">
+              <input type="checkbox" ${c.done?"checked":""} onchange="toggleCheck('${c.id}')">
+              <span>${esc(L(c.text))}</span>
+              <button class="g-x" onclick="event.preventDefault();delCheck('${c.id}')">✕</button>
+            </label>`).join("")}
+          <div style="display:flex;gap:7px;margin-top:8px">
+            <input class="inp" id="newCheck" placeholder="${esc(t("addCheck"))}">
+            <button class="btn ghost-b" onclick="addCheck()">+</button>
+          </div>
+        </div>
+
+        <div class="block">
+          <p class="lbl">${esc(t("attachments"))}</p>
+          ${(x.attachments||[]).length?`<div class="files">${x.attachments.map(a=>`
+            <div class="file">
+              ${a.type&&a.type.startsWith("image/")
+                ? `<a href="${a.data}" target="_blank" rel="noopener"><img src="${a.data}" alt="${esc(a.name)}"></a>`
+                : `<a href="${a.data}" download="${esc(a.name)}" class="doc" style="text-decoration:none">📄</a>`}
+              <div class="fn" title="${esc(a.name)}">${esc(a.name)}</div>
+              <button class="rm" onclick="delFile('${a.id}')">✕</button>
+            </div>`).join("")}</div>`:""}
+          <div class="drop" id="drop" onclick="document.getElementById('fileIn').click()">
+            ${TOUCH ? `<div style="font-size:20px">＋</div>${esc(t("pickFile"))}`
+                    : `<div style="font-size:20px">⬇︎</div>${esc(t("dropHere"))}<br><span style="opacity:.75">${esc(t("orClick"))}</span>`}
+          </div>
+          <input type="file" id="fileIn" multiple class="hidden">
+        </div>
+
+        <div class="block">
+          <p class="lbl">${esc(t("notes"))}</p>
+          ${notesHTML(x)}
+          <div style="display:flex;gap:8px;margin-top:10px;align-items:flex-start">
+            ${avatar(me())}
+            <textarea class="inp" id="newNote" rows="2" placeholder="${esc(t("notePh"))}"></textarea>
+            <button class="btn" onclick="addNote()">${esc(t("send"))}</button>
+          </div>
+        </div>
+      </div>
+
+      <aside>
+        <div class="block">
+          <p class="lbl">${esc(t("column"))}</p>
+          <select class="inp" onchange="moveTaskTo(this.value)">
+            ${g.columns.map(c=>`<option value="${c.id}" ${c.id===f.c.id?"selected":""}>${esc(L(c.name))}</option>`).join("")}
+          </select>
+        </div>
+        <div class="block">
+          <p class="lbl">${esc(t("priority"))}</p>
+          <div class="row">
+            ${["high","medium","low"].map(p=>`<button class="chip ${x.priority===p?"on":""}" onclick="setPrio('${p}')">${esc(prioMeta(p).label)}</button>`).join("")}
+            <button class="chip ${!x.priority?"on":""}" onclick="setPrio('')">${esc(t("none"))}</button>
+          </div>
+        </div>
+        <div class="block">
+          <p class="lbl">${esc(t("due"))}</p>
+          <input type="date" class="inp" id="tDue" value="${x.due||""}">
+        </div>
+        <div class="block">
+          <p class="lbl">${esc(t("color"))}</p>
+          <div class="row">
+            ${COLORS.map(c=>`<span class="swatch ${x.color===c?"on":""}" style="background:${c}" onclick="setColor('${c}')"></span>`).join("")}
+            <span class="swatch ${!x.color?"on":""}" style="background:#fff;border:1px solid var(--line)" onclick="setColor('')"></span>
+          </div>
+        </div>
+        <div class="block">
+          <p class="lbl">${esc(t("assignees"))}</p>
+          ${S.members.map(m=>`
+            <div class="m-item" onclick="toggleAssignee('${m.id}')">
+              ${avatar(m)}<span>${esc(m.name)}</span>
+              ${(x.assignees||[]).includes(m.id)?'<span style="margin-left:auto;color:var(--accent)">✓</span>':''}
+            </div>`).join("")}
+        </div>
+        ${S.isAdmin?`<div class="block">
+          <p class="lbl">${esc(t("visibility"))}</p>
+          <div class="row" style="margin-bottom:8px">
+            <button class="chip ${!Array.isArray(x.visible)?"on":""}" onclick="setVisAll()">${esc(t("visAll"))}</button>
+            <button class="chip ${Array.isArray(x.visible)?"on":""}" onclick="setVisSome()">${esc(t("visSome"))}</button>
+          </div>
+          ${Array.isArray(x.visible)?S.members.filter(m=>m.role!=="admin").map(m=>{
+            const asg=(x.assignees||[]).includes(m.id);
+            return `<div class="m-item" onclick="${asg?"":`toggleVis('${m.id}')`}" style="${asg?"opacity:.6":""}">
+              ${avatar(m,"sm")}<span>${esc(m.name)}</span>
+              ${(x.visible.includes(m.id)||asg)?'<span style="margin-left:auto;color:var(--accent)">✓</span>':""}
+            </div>`;
+          }).join(""):""}
+        </div>`:""}
+        ${S.isAdmin?`<button class="btn danger" style="width:100%" onclick="deleteTask()">${esc(t("deleteTask"))}</button>`:""}
+      </aside>
+    </div>
+  </div>`;
+
+  // Titel
+  const ti=w.querySelector("#tTitle");
+  const fit=()=>{ ti.style.height="auto"; ti.style.height=ti.scrollHeight+"px"; };
+  fit(); ti.oninput=()=>{ fit(); x.title=ti.value; touch(x); renderBoard(); save(); };
+  ti.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); ti.blur(); } };
+
+  // Beschreibung
+  const de=w.querySelector("#tDesc");
+  de.oninput=()=>{ x.desc=de.value; touch(x); save(); };
+
+  // Fälligkeit
+  w.querySelector("#tDue").onchange=e=>{
+    x.due=e.target.value||null; touch(x); renderBoard(); save();
+    notify("n_due",{u:me().name,t:L(x.title)},x.id);
+  };
+
+  // Checklisten-Eingabe
+  const nc=w.querySelector("#newCheck");
+  nc.onkeydown=e=>{ if(e.key==="Enter") addCheck(); };
+
+  // Notiz mit Cmd/Strg+Enter
+  const nn=w.querySelector("#newNote");
+  nn.onkeydown=e=>{ if(e.key==="Enter"&&(e.metaKey||e.ctrlKey)) addNote(); };
+
+  // Dateien: Drag & Drop
+  const drop=w.querySelector("#drop"), fin=w.querySelector("#fileIn");
+  ["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("hot")}));
+  ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("hot")}));
+  drop.addEventListener("drop",e=>addFiles(e.dataTransfer.files));
+  fin.onchange=()=>addFiles(fin.files);
+}
+
+function notesHTML(x){
+  const top=(x.notes||[]).filter(n=>!n.parent);
+  if(!top.length) return `<div style="color:var(--ink-3);font-size:12.5px;padding:4px 0">—</div>`;
+  return top.map(n=>noteHTML(x,n)+`<div class="replies">${(x.notes||[]).filter(r=>r.parent===n.id).map(r=>noteHTML(x,r)).join("")}</div>`).join("");
+}
+function noteHTML(x,n){
+  const m=member(n.author);
+  const rx=n.rx||{};
+  const chips=Object.keys(rx).filter(k=>rx[k].length).map(k=>
+    `<button class="rx ${rx[k].includes(S.meId)?"mine":""}" onclick="toggleRx('${n.id}','${k}')">${k} ${rx[k].length}</button>`).join("");
+  return `<div class="note">
+    ${avatar(m)}
+    <div class="note-b">
+      <div class="note-head"><b>${esc(m?m.name:"?")}</b><time>${esc(timeAgo(n.ts))}</time></div>
+      <div class="bubble">${esc(L(n.text))}</div>
+      <div class="note-acts">
+        ${chips}
+        <button class="rx-add" onclick="togglePicker('${n.id}',event)">☺+</button>
+        ${!n.parent?`<button class="link-b" onclick="setReply('${n.id}')">${esc(t("reply"))}</button>`:""}
+        ${n.author===S.meId?`<button class="link-b" onclick="delNote('${n.id}')">${esc(t("del"))}</button>`:""}
+      </div>
+      ${pickerFor===n.id?`<div class="row" style="margin-top:6px">${EMOJI.map(e=>`<button class="rx" onclick="toggleRx('${n.id}','${e}')">${e}</button>`).join("")}</div>`:""}
+      ${replyTo===n.id?`<div style="display:flex;gap:7px;margin-top:7px">
+          <textarea class="inp" id="replyIn" rows="1" placeholder="${esc(t("replyPh"))}"></textarea>
+          <button class="btn sm" onclick="addNote('${n.id}')">${esc(t("send"))}</button>
+        </div>`:""}
+    </div>
+  </div>`;
+}
+
+/* Aktionen im Dialog */
+function setVisAll(){ const f=currentTask(); if(!f) return; f.task.visible=null; touch(f.task); drawTask(); renderBoard(); save(); }
+function setVisSome(){ const f=currentTask(); if(!f) return;
+  if(!Array.isArray(f.task.visible)) f.task.visible=[...(f.task.assignees||[])];
+  touch(f.task); drawTask(); renderBoard(); save(); }
+function toggleVis(id){ const f=currentTask(); if(!f) return;
+  const v=f.task.visible||[]; const i=v.indexOf(id);
+  if(i>-1) v.splice(i,1); else v.push(id);
+  f.task.visible=v; touch(f.task); drawTask(); renderBoard(); save(); }
+function setPrio(p){ const f=currentTask(); if(!f) return; f.task.priority=p||null; touch(f.task); drawTask(); renderBoard(); save(); notify("n_prio",{u:me().name,t:L(f.task.title)},f.task.id); }
+function setColor(c){ const f=currentTask(); if(!f) return; f.task.color=c||null; touch(f.task); drawTask(); renderBoard(); save(); }
+function toggleAssignee(id){
+  const f=currentTask(); if(!f) return;
+  const a=f.task.assignees||(f.task.assignees=[]);
+  const i=a.indexOf(id);
+  touch(f.task);
+  if(i>-1) a.splice(i,1); else { a.push(id); notify("n_assign",{u:me().name,m:member(id).name,t:L(f.task.title)},f.task.id); }
+  drawTask(); renderBoard(); save();
+}
+function moveTaskTo(colId){
+  const f=currentTask(); if(!f) return;
+  if(colId===f.c.id) return;
+  f.c.tasks.splice(f.i,1);
+  const target=f.g.columns.find(c=>c.id===colId);
+  touch(f.task); target.tasks.unshift(f.task);
+  renderBoard(); drawTask(); save();
+  notify("n_moved",{u:me().name,t:L(f.task.title),c:L(target.name)},f.task.id);
+}
+function addCheck(){
+  const f=currentTask(); if(!f) return;
+  const el=document.getElementById("newCheck"); const v=el.value.trim(); if(!v) return;
+  (f.task.checklist||(f.task.checklist=[])).push(touch({id:uid(),text:v,done:false,ts:now()}));
+  touch(f.task);
+  drawTask(); renderBoard(); save();
+  setTimeout(()=>document.getElementById("newCheck")?.focus(),0);
+}
+function toggleCheck(id){
+  const f=currentTask(); if(!f) return;
+  const c=f.task.checklist.find(c=>c.id===id); c.done=!c.done; touch(c); touch(f.task);
+  drawTask(); renderBoard(); save();
+  notify("n_check",{u:me().name,t:L(f.task.title)},f.task.id);
+}
+function delCheck(id){
+  const f=currentTask(); if(!f) return;
+  bury(id); touch(f.task); f.task.checklist=f.task.checklist.filter(c=>c.id!==id);
+  drawTask(); renderBoard(); save();
+}
+function addFiles(list){
+  const f=currentTask(); if(!f||!list||!list.length) return;
+  [...list].forEach(file=>{
+    if(file.size > 3*1024*1024){ toast(t("fileTooBig")); return; }
+    const r=new FileReader();
+    r.onload=()=>{
+      (f.task.attachments||(f.task.attachments=[])).push(touch({id:uid(),name:file.name,type:file.type,size:file.size,data:r.result,ts:now()}));
+      touch(f.task);
+      drawTask(); renderBoard(); save();
+      notify("n_file",{u:me().name,t:L(f.task.title)},f.task.id);
+    };
+    r.readAsDataURL(file);
+  });
+}
+function delFile(id){
+  const f=currentTask(); if(!f) return;
+  bury(id); touch(f.task); f.task.attachments=f.task.attachments.filter(a=>a.id!==id);
+  drawTask(); renderBoard(); save();
+}
+function setReply(id){ replyTo = (replyTo===id?null:id); drawTask(); setTimeout(()=>document.getElementById("replyIn")?.focus(),0); }
+function togglePicker(id){ pickerFor = (pickerFor===id?null:id); drawTask(); }
+function addNote(parent){
+  const f=currentTask(); if(!f) return;
+  const el=document.getElementById(parent?"replyIn":"newNote");
+  const v=(el?.value||"").trim(); if(!v) return;
+  (f.task.notes||(f.task.notes=[])).push(touch({id:uid(),author:S.meId,text:v,ts:now(),parent:parent||null,rx:{}}));
+  touch(f.task);
+  replyTo=null; drawTask(); renderBoard(); save();
+  notify("n_note",{u:me().name,t:L(f.task.title)},f.task.id);
+}
+function delNote(id){
+  const f=currentTask(); if(!f) return;
+  bury(id); touch(f.task);
+  f.task.notes.filter(n=>n.parent===id).forEach(n=>bury(n.id));
+  f.task.notes=f.task.notes.filter(n=>n.id!==id && n.parent!==id);
+  drawTask(); renderBoard(); save();
+}
+function toggleRx(noteId,emoji){
+  const f=currentTask(); if(!f) return;
+  const n=f.task.notes.find(n=>n.id===noteId); if(!n) return;
+  n.rx=n.rx||{}; n.rx[emoji]=n.rx[emoji]||[];
+  const i=n.rx[emoji].indexOf(S.meId);
+  touch(n); touch(f.task);
+  if(i>-1) n.rx[emoji].splice(i,1);
+  else { n.rx[emoji].push(S.meId); notify("n_react",{u:me().name,t:L(f.task.title)},f.task.id); }
+  pickerFor=null; drawTask(); save();
+}
+async function deleteTask(){
+  const f=currentTask(); if(!f) return;
+  if(!await askConfirm(t("confirmDelete"))) return;
+  const name=L(f.task.title);
+  bury(f.task.id); f.c.tasks.splice(f.i,1);
+  closeTask(); renderBoard(); save();
+  notify("n_del",{u:me().name,t:name});
+}
+
+/* =======================================================================
+   10. Team-Mitglieder
+   ======================================================================= */
+/* Verwaltung: Mitarbeiter anlegen, Passwort setzen, Sichtbarkeit vergeben */
+let adminTab = "team";
+
+function openAdmin(){
+  if(!S.isAdmin){ toast(t("adminOnly")); return; }
+  document.getElementById("mePop").classList.add("hidden");
+  closeSidebar();
+  let w=document.getElementById("adminOverlay");
+  if(!w){
+    w=document.createElement("div"); w.className="overlay"; w.id="adminOverlay";
+    document.getElementById("modalRoot").appendChild(w);
+    w.onclick=e=>{ if(e.target===w) closeAdmin(); };
+  }
+  drawAdmin();
+}
+function closeAdmin(){ document.getElementById("adminOverlay")?.remove(); }
+
+function drawAdmin(){
+  const w=document.getElementById("adminOverlay"); if(!w) return;
+  const rows = S.members.map(m=>{
+    const cnt = countVisible(m);
+    return `<div class="adm-row">
+      ${avatar(m)}
+      <div style="flex:1;min-width:0">
+        <b style="display:block;font-size:13.5px">${esc(m.name)}</b>
+        <small style="color:var(--ink-3)">${esc(m.email||"—")} · ${esc(m.role==="admin"?t("roleAdmin"):t("roleMember"))}
+        · ${m.hasPw||m.pwNew?esc(t("pwSet")):esc(t("pwNone"))}</small>
+      </div>
+      <span style="font-size:11.5px;color:var(--ink-3);white-space:nowrap">${cnt.seen}/${cnt.all}</span>
+      <button class="btn ghost-b sm" onclick="editMember('${m.id}')">✎</button>
+      ${m.role==="admin"?"":`<button class="btn ghost-b sm" onclick="delMember('${m.id}')">✕</button>`}
+    </div>`;
+  }).join("");
+
+  w.innerHTML=`<div class="sheet">
+    <div class="sheet-head">
+      <b style="font-size:17px">${esc(t("admin"))}</b>
+      <button class="x" onclick="closeAdmin()">✕</button>
+    </div>
+    <div style="padding:16px 20px 22px">
+      ${rows}
+      <button class="btn" style="margin-top:12px" onclick="editMember()">+ ${esc(t("newMember"))}</button>
+      <p style="color:var(--ink-3);font-size:12px;margin:16px 0 0">${esc(t("visNote"))}</p>
+
+      <div style="border-top:1px solid var(--line);margin-top:18px;padding-top:16px">
+        <div class="row">
+          <button class="btn ghost-b sm" onclick="exportBackup()">⤓ ${esc(t("backup"))}</button>
+          <button class="btn ghost-b sm" onclick="document.getElementById('impFile').click()">⤒ ${esc(t("restore"))}</button>
+          <input type="file" accept="application/json,.json" id="impFile" class="hidden">
+        </div>
+        <p style="color:var(--ink-3);font-size:12px;margin:10px 0 0">${esc(t("backupNote"))}</p>
+      </div>
+    </div>
+  </div>`;
+  const f=document.getElementById("impFile");
+  if(f) f.onchange=()=>{ if(f.files[0]) importBackup(f.files[0]); f.value=""; };
+}
+
+/* Sicherung: alles in eine Datei – zum Umziehen auf einen anderen Anbieter */
+function exportBackup(){
+  const data = JSON.stringify({app:"projektboard", version:1, ts:Date.now(), state:shared()}, null, 1);
+  const url = URL.createObjectURL(new Blob([data],{type:"application/json"}));
+  const a = document.createElement("a");
+  a.href=url; a.download = "projektboard-"+new Date().toISOString().slice(0,10)+".json";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+async function importBackup(file){
+  let data;
+  try{ data = JSON.parse(await file.text()); }catch(e){ toast(t("restoreBad")); return; }
+  const st = (data && data.state) ? data.state : data;
+  if(!st || !Array.isArray(st.groups) || !Array.isArray(st.members)){ toast(t("restoreBad")); return; }
+  if(!await askConfirm(t("restoreAsk"))) return;
+  SHARED_KEYS.forEach(k=>{ if(st[k]!==undefined) S[k]=st[k]; });
+  S.tomb=S.tomb||{}; S.watchers=S.watchers||[];
+  if(!S.groups.find(g=>g.id===S.activeGroup)) S.activeGroup=(S.groups[0]||{}).id;
+  if(!S.members.find(m=>m.id===S.meId)) S.meId=(S.members[0]||{}).id;
+  render(); save(); drawAdmin(); toast(t("restoreOk"));
+}
+
+function countVisible(m){
+  let all=0, seen=0;
+  S.groups.forEach(g=>g.columns.forEach(c=>c.tasks.forEach(x=>{
+    all++;
+    const ok = m.role==="admin" || !Array.isArray(x.visible)
+               || x.visible.includes(m.id) || (x.assignees||[]).includes(m.id);
+    if(ok) seen++;
+  })));
+  return {all, seen};
+}
+
+/* Mitarbeiter anlegen oder bearbeiten – inklusive Aufgabenliste zum Ankreuzen */
+function editMember(id){
+  const m = id ? member(id) : null;
+  const isNew = !m;
+  const w=document.createElement("div"); w.className="overlay"; w.style.zIndex=120;
+  const tasksHTML = S.groups.map(g=>`
+    <div style="margin-top:10px"><p class="lbl">${esc(L(g.name))}</p>
+      ${g.columns.map(c=>c.tasks.map(x=>{
+        const assigned=(x.assignees||[]).includes(m?m.id:"");
+        const on = m ? (!Array.isArray(x.visible) || x.visible.includes(m.id)) : true;
+        return `<label class="chk">
+          <input type="checkbox" class="visBox" data-task="${x.id}" ${on?"checked":""} ${assigned?"disabled":""}>
+          <span>${esc(L(x.title))}<small style="color:var(--ink-3);display:block">${esc(L(c.name))}${assigned?" · "+esc(t("assignedAlways")):""}</small></span>
+        </label>`;
+      }).join("")).join("")}
+    </div>`).join("");
+
+  w.innerHTML=`<div class="sheet">
+    <div class="sheet-head"><b style="font-size:16px">${esc(isNew?t("newMember"):m.name)}</b><button class="x">✕</button></div>
+    <div style="padding:16px 20px 22px;max-height:70vh;overflow:auto">
+      <div style="display:flex;gap:14px;align-items:center;margin-bottom:14px">
+        <span class="av lg" id="aPrev" style="background:${m?m.color:AVCOL[S.members.length%AVCOL.length]};${m&&m.avatar?`background-image:url('${m.avatar}');background-size:cover`:""}">${m&&m.avatar?"":esc(initials(m?m.name:"?"))}</span>
+        <button class="btn ghost-b sm" id="aPick">${esc(t("photo"))}…</button>
+        <input type="file" accept="image/*" id="aFile" class="hidden">
+      </div>
+      <input class="inp" id="aName" placeholder="${esc(t("namePh"))}" value="${esc(m?m.name:"")}">
+      <input class="inp" id="aMail" type="email" style="margin-top:8px" placeholder="name@firma.de" value="${esc(m?(m.email||""):"")}">
+      <input class="inp" id="aPw" type="password" style="margin-top:8px" placeholder="${esc(isNew?t("pw"):t("pwNew")+" – "+t("leaveEmpty"))}">
+      <p style="color:var(--ink-3);font-size:12px;margin:6px 0 0">${esc(t("pwHint"))}</p>
+
+      <p class="lbl" style="margin-top:16px">${esc(t("role"))}</p>
+      <div class="row">
+        <button class="chip ${(!m||m.role!=="admin")?"on":""}" id="rMember">${esc(t("roleMember"))}</button>
+        <button class="chip ${(m&&m.role==="admin")?"on":""}" id="rAdmin">${esc(t("roleAdmin"))}</button>
+      </div>
+
+      <div id="visWrap" style="${(m&&m.role==="admin")?"display:none":""}">
+        <p class="lbl" style="margin-top:18px">${esc(m ? t("visibility")+" "+m.name : t("visTasks"))}</p>
+        ${tasksHTML || `<p style="color:var(--ink-3);font-size:12.5px">—</p>`}
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px">
+        <button class="btn ghost-b" data-c>${esc(t("cancel"))}</button>
+        <button class="btn" data-ok>${esc(t("save"))}</button>
+      </div>
+    </div></div>`;
+  document.getElementById("modalRoot").appendChild(w);
+
+  let img = m ? m.avatar : null;
+  let role = m ? m.role : "member";
+  const prev=w.querySelector("#aPrev"), file=w.querySelector("#aFile"), name=w.querySelector("#aName");
+  w.querySelector("#aPick").onclick=()=>file.click();
+  file.onchange=()=>{ const f=file.files[0]; if(!f) return; const r=new FileReader();
+    r.onload=()=>{ img=r.result; prev.style.backgroundImage=`url('${img}')`; prev.style.backgroundSize="cover"; prev.textContent=""; };
+    r.readAsDataURL(f); };
+  name.oninput=()=>{ if(!img) prev.textContent=initials(name.value); };
+  const setRole=r=>{ role=r;
+    w.querySelector("#rMember").classList.toggle("on", r==="member");
+    w.querySelector("#rAdmin").classList.toggle("on", r==="admin");
+    w.querySelector("#visWrap").style.display = r==="admin" ? "none" : "";
+  };
+  w.querySelector("#rMember").onclick=()=>setRole("member");
+  w.querySelector("#rAdmin").onclick=()=>setRole("admin");
+  const close=()=>w.remove();
+  w.querySelector(".x").onclick=close; w.querySelector("[data-c]").onclick=close;
+  w.onclick=e=>{ if(e.target===w) close(); };
+  if(isNew) name.focus();
+
+  w.querySelector("[data-ok]").onclick=async ()=>{
+    const nm=name.value.trim(), em=w.querySelector("#aMail").value.trim(), pw=w.querySelector("#aPw").value;
+    if(!nm){ toast(t("needEmail")); return; }
+    if(isNew && (!em || pw.length<6)){ toast(t("needEmail")); return; }
+    if(em && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ toast(t("mailBad")); return; }
+    if(pw && pw.length<6){ toast(t("needEmail")); return; }
+
+    let rec = m;
+    if(isNew){
+      rec = {id:uid(), color:AVCOL[S.members.length%AVCOL.length], role:"member"};
+      S.members.push(rec);
+    }
+    rec.name=nm; rec.email=em; rec.avatar=img; rec.role=role; touch(rec);
+    if(pw){ rec.pwNew = await hashOf(em+":"+pw); rec.hasPw = true; }
+
+    // Sichtbarkeit übernehmen
+    if(role!=="admin"){
+      const boxes=[...w.querySelectorAll(".visBox")];
+      boxes.forEach(b=>{
+        const f=findTask(b.dataset.task); if(!f) return;
+        const x=f.task;
+        const on=b.checked || b.disabled;
+        let vis = Array.isArray(x.visible) ? [...x.visible] : null;
+        if(on){
+          if(vis && !vis.includes(rec.id)){ vis.push(rec.id); touch(x); }
+        }else{
+          if(!vis){ // bisher für alle sichtbar -> auf alle außer diese Person begrenzen
+            vis = S.members.filter(o=>o.id!==rec.id && o.role!=="admin").map(o=>o.id);
+            touch(x);
+          }else if(vis.includes(rec.id)){
+            vis = vis.filter(v=>v!==rec.id); touch(x);
+          }
+        }
+        x.visible = vis;
+      });
+    }
+
+    // E-Mail-Benachrichtigung für neue Mitarbeiter gleich einschalten
+    if(em){
+      const ex=(S.watchers||[]).find(x=>x.id===rec.id);
+      if(!ex) S.watchers=[...(S.watchers||[]), touch({id:rec.id,on:true,email:em,lang:S.lang,from:null,onlyMine:false})];
+      else if(ex.email!==em){ ex.email=em; touch(ex); }
+    }
+    close(); render(); save(); drawAdmin(); toast(t("memberSaved"));
+  };
+}
+
+async function delMember(id){
+  if(!S.isAdmin) return;
+  if(S.members.length<2) return;
+  if(!await askConfirm(t("confirmDelete"))) return;
+  bury(id);
+  S.members=S.members.filter(m=>m.id!==id);
+  S.groups.forEach(g=>g.columns.forEach(c=>c.tasks.forEach(x=>{
+    x.assignees=(x.assignees||[]).filter(a=>a!==id);
+    if(Array.isArray(x.visible)) x.visible=x.visible.filter(v=>v!==id);
+  })));
+  S.watchers=(S.watchers||[]).filter(x=>x.id!==id);
+  S.chats=S.chats.filter(c=>!(c.type==="dm"&&c.members.includes(id)));
+  render(); save(); drawAdmin();
+}
+
+/* =======================================================================
+   10b. E-Mail-Benachrichtigungen (Einstellung je Person)
+   ======================================================================= */
+const watcherOf = id => (S.watchers||[]).find(w=>w.id===id);
+
+function openMailSettings(){
+  document.getElementById("mePop").classList.add("hidden");
+  const w0 = watcherOf(S.meId) || {id:S.meId, on:false, email:"", from:null, onlyMine:false};
+  const root=document.getElementById("modalRoot");
+  const w=document.createElement("div"); w.className="overlay";
+  w.innerHTML=`<div class="sheet narrow" style="margin-top:8vh">
+    <div class="sheet-head"><b style="font-size:16px">${esc(t("mailTitle"))}</b><button class="x">✕</button></div>
+    <div style="padding:16px 20px 20px">
+      <label class="chk"><input type="checkbox" id="mOn" ${w0.on?"checked":""}><span>${esc(t("mailOn"))}</span></label>
+
+      <p class="lbl" style="margin-top:16px">${esc(t("mailAddr"))}</p>
+      <input class="inp" id="mMail" type="email" inputmode="email" placeholder="name@firma.de" value="${esc(w0.email||"")}">
+
+      <p class="lbl" style="margin-top:16px">${esc(t("mailFrom"))}</p>
+      <label class="chk"><input type="checkbox" id="mAll" ${w0.from?"":"checked"}><span>${esc(t("mailAll"))}</span></label>
+      <div id="mFrom" style="margin-left:4px">
+        ${S.members.filter(m=>m.id!==S.meId).map(m=>`
+          <label class="chk"><input type="checkbox" class="mFromBox" value="${m.id}" ${(w0.from||[]).includes(m.id)?"checked":""}>${avatar(m,"sm")}<span>${esc(m.name)}</span></label>`).join("")}
+      </div>
+
+      <label class="chk" style="margin-top:10px"><input type="checkbox" id="mMine" ${w0.onlyMine?"checked":""}><span>${esc(t("mailOnlyMine"))}</span></label>
+      <p style="color:var(--ink-3);font-size:12px;margin:14px 0 0">${esc(t("mailNote"))}</p>
+      <p style="color:var(--ink-3);font-size:12px;margin:6px 0 0">${esc(t("mailSelfNote"))}</p>
+
+      <button class="btn ghost-b" id="mTestBtn" style="margin-top:14px">${esc(t("mailTest"))}</button>
+      <p id="mTestOut" style="font-size:12.5px;margin:8px 0 0;word-break:break-word"></p>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button class="btn ghost-b" data-c>${esc(t("cancel"))}</button>
+        <button class="btn" data-ok>${esc(t("save"))}</button>
+      </div>
+    </div></div>`;
+  root.appendChild(w);
+  const close=()=>w.remove();
+  const all=w.querySelector("#mAll"), from=w.querySelector("#mFrom");
+  const sync=()=>{ from.style.opacity = all.checked ? ".4" : "1";
+                   from.querySelectorAll("input").forEach(i=>i.disabled=all.checked); };
+  sync(); all.onchange=sync;
+
+  // Probe-Mail: zeigt die Antwort des Mailanbieters im Klartext
+  const tBtn=w.querySelector("#mTestBtn"), tOut=w.querySelector("#mTestOut");
+  tBtn.onclick=async ()=>{
+    const email=w.querySelector("#mMail").value.trim();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ tOut.style.color="var(--red)"; tOut.textContent=t("mailBad"); return; }
+    if(SYNC.mode!=="on"){ tOut.style.color="var(--red)"; tOut.textContent=t("mailNoServer"); return; }
+    tBtn.disabled=true; tOut.style.color="var(--ink-3)"; tOut.textContent=t("mailTesting");
+    try{
+      const r=await fetch(SYNC.url,{method:"POST",headers:SYNC.headers(),
+            body:JSON.stringify({test:true,email,lang:S.lang})});
+      const d=await r.json();
+      if(d.ok){ tOut.style.color="var(--green)"; tOut.textContent=t("mailTestOk"); }
+      else { tOut.style.color="var(--red)"; tOut.textContent=t("mailTestFail")+" "+(d.error||"?"); }
+    }catch(e){ tOut.style.color="var(--red)"; tOut.textContent=t("mailTestFail")+" "+e; }
+    tBtn.disabled=false;
+  };
+
+  w.querySelector(".x").onclick=close; w.querySelector("[data-c]").onclick=close;
+  w.onclick=e=>{ if(e.target===w) close(); };
+  w.querySelector("[data-ok]").onclick=()=>{
+    const on=w.querySelector("#mOn").checked;
+    const email=w.querySelector("#mMail").value.trim();
+    if(on && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ toast(t("mailBad")); return; }
+    const picked=[...w.querySelectorAll(".mFromBox:checked")].map(i=>i.value);
+    const rec = touch({id:S.meId, on, email, lang:S.lang,
+                       from: all.checked ? null : picked,
+                       onlyMine: w.querySelector("#mMine").checked});
+    S.watchers = [...(S.watchers||[]).filter(x=>x.id!==S.meId), rec];
+    close(); save(); toast(t("mailSaved"));
+  };
+}
+
+/* =======================================================================
+   11. Suche
+   ======================================================================= */
+function runSearch(){
+  const q=document.getElementById("q").value.trim().toLowerCase();
+  const box=document.getElementById("results");
+  if(!q){ box.classList.remove("open"); box.innerHTML=""; return; }
+  const tasks=[],notes=[],checks=[];
+  S.groups.forEach(g=>g.columns.forEach(c=>c.tasks.forEach(x=>{
+    if(!canSee(x)) return;
+    const title=L(x.title).toLowerCase(), desc=L(x.desc).toLowerCase();
+    if(title.includes(q)||desc.includes(q)) tasks.push({x,g,c});
+    (x.notes||[]).forEach(n=>{ if(L(n.text).toLowerCase().includes(q)) notes.push({x,g,c,n}); });
+    (x.checklist||[]).forEach(k=>{ if(L(k.text).toLowerCase().includes(q)) checks.push({x,g,c,k}); });
+  })));
+  let h="";
+  if(tasks.length){ h+=`<div class="res-h">${esc(t("resultsTasks"))}</div>` + tasks.slice(0,12).map(r=>
+    `<div class="res" onclick="jump('${r.x.id}','${r.g.id}')">📋<div><b>${esc(L(r.x.title))}</b><small>${esc(L(r.g.name))} · ${esc(t("inCol"))} ${esc(L(r.c.name))}</small></div></div>`).join(""); }
+  if(notes.length){ h+=`<div class="res-h">${esc(t("resultsNotes"))}</div>` + notes.slice(0,10).map(r=>
+    `<div class="res" onclick="jump('${r.x.id}','${r.g.id}')">💬<div><b>${esc(L(r.n.text).slice(0,70))}</b><small>${esc(L(r.x.title))} · ${esc(member(r.n.author)?.name||"")}</small></div></div>`).join(""); }
+  if(checks.length){ h+=`<div class="res-h">${esc(t("resultsChecks"))}</div>` + checks.slice(0,10).map(r=>
+    `<div class="res" onclick="jump('${r.x.id}','${r.g.id}')">☑<div><b>${esc(L(r.k.text))}</b><small>${esc(L(r.x.title))}</small></div></div>`).join(""); }
+  box.innerHTML = h || `<div class="empty-res">${esc(t("noResults"))}</div>`;
+  box.classList.add("open");
+}
+function jump(taskId,groupId){
+  S.activeGroup=groupId; closeSidebar(); render();
+  document.querySelector(".search").classList.remove("open");
+  document.getElementById("results").classList.remove("open");
+  openTask(taskId);
+}
+
+/* =======================================================================
+   12. Chat
+   ======================================================================= */
+const myChats = () => (S.chats||[]).filter(c=>S.isAdmin || (c.members||[]).includes(S.meId));
+function chatTitle(c){
+  if(c.type==="group") return c.name;
+  const other=c.members.find(m=>m!==S.meId)||c.members[0];
+  return member(other)?.name || "?";
+}
+function chatAvatar(c){
+  if(c.type==="group") return `<span class="av" style="background:#8e8e93">👥</span>`;
+  const other=c.members.find(m=>m!==S.meId)||c.members[0];
+  return avatar(member(other));
+}
+function renderChat(){
+  const d=document.getElementById("chatDrawer");
+  const conv = S.activeChat ? S.chats.find(c=>c.id===S.activeChat) : null;
+  if(!conv){
+    d.innerHTML=`<div class="dr-head"><span>${esc(t("chats"))}</span>
+        <button class="tbtn" style="margin-left:auto" onclick="newChatGroup()" title="${esc(t("newChatGroup"))}">＋</button>
+        <button class="tbtn" onclick="toggleChat(false)">✕</button></div>
+      <div class="dr-body">
+        ${myChats().length?myChats().map(c=>{
+          const last=c.messages[c.messages.length-1];
+          return `<div class="conv" onclick="openConv('${c.id}')">${chatAvatar(c)}
+            <div style="flex:1;min-width:0"><b>${esc(chatTitle(c))}</b>
+            <small>${last?esc((member(last.author)?.name.split(" ")[0]||"")+": "+L(last.text)):"—"}</small></div>
+            ${last?`<time style="font-size:11px;color:var(--ink-3)">${esc(timeAgo(last.ts))}</time>`:""}
+          </div>`}).join(""):`<div class="hint">${esc(t("noChat"))}</div>`}
+        <div class="res-h" style="margin-top:10px">${esc(t("team"))}</div>
+        ${S.members.filter(m=>m.id!==S.meId).map(m=>`<div class="conv" onclick="openDM('${m.id}')">${avatar(m)}<b>${esc(m.name)}</b></div>`).join("")}
+      </div>`;
+    return;
+  }
+  d.innerHTML=`<div class="dr-head">
+      <button class="tbtn" onclick="backToChats()">‹</button>
+      ${chatAvatar(conv)}<span>${esc(chatTitle(conv))}</span>
+      <button class="tbtn" style="margin-left:auto" onclick="toggleChat(false)">✕</button></div>
+    <div class="dr-body" id="msgs">
+      ${conv.messages.map(m=>{
+        const mine=m.author===S.meId, au=member(m.author);
+        return `<div class="msg ${mine?"me":""}">${mine?"":avatar(au,"sm")}
+          <div><div class="bub">${esc(L(m.text))}</div>
+          <small style="${mine?"text-align:right":""}">${mine?"":esc(au?.name.split(" ")[0]||"")+" · "}${esc(timeAgo(m.ts))}</small></div></div>`;
+      }).join("")}
+    </div>
+    <div class="dr-foot">
+      <textarea id="chatIn" rows="1" placeholder="${esc(t("chatPlaceholder"))}"></textarea>
+      <button class="icon-send" onclick="sendMsg()">↑</button>
+    </div>`;
+  const box=document.getElementById("msgs"); box.scrollTop=box.scrollHeight;
+  const inp=document.getElementById("chatIn");
+  inp.onkeydown=e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMsg(); } };
+  inp.oninput=()=>{ inp.style.height="auto"; inp.style.height=Math.min(inp.scrollHeight,110)+"px"; };
+  inp.focus();
+}
+function toggleChat(open){
+  const d=document.getElementById("chatDrawer");
+  const on = open===undefined ? !d.classList.contains("open") : open;
+  d.classList.toggle("open", on);
+  document.getElementById("chatBtn").classList.toggle("active", on);
+  if(on) renderChat();
+}
+function openConv(id){ S.activeChat=id; toggleChat(true); renderChat(); save(); }
+function backToChats(){ S.activeChat=null; renderChat(); save(); }
+function openDM(memberId){
+  if(memberId===S.meId){ toggleChat(true); return; }
+  let c=S.chats.find(c=>c.type==="dm"&&c.members.includes(memberId)&&c.members.includes(S.meId));
+  if(!c){ c=touch({id:uid(),type:"dm",name:null,members:[S.meId,memberId],messages:[]}); S.chats.push(c); }
+  openConv(c.id);
+}
+function sendMsg(){
+  const c=S.chats.find(c=>c.id===S.activeChat); if(!c) return;
+  const inp=document.getElementById("chatIn"); const v=inp.value.trim(); if(!v) return;
+  c.messages.push({id:uid(),author:S.meId,text:v,ts:now()}); touch(c);
+  inp.value=""; renderChat(); save();
+}
+function newChatGroup(){
+  const root=document.getElementById("modalRoot");
+  const w=document.createElement("div"); w.className="overlay";
+  w.innerHTML=`<div class="sheet narrow" style="margin-top:8vh">
+    <div class="sheet-head"><b style="font-size:16px">${esc(t("newChatGroup"))}</b><button class="x">✕</button></div>
+    <div style="padding:16px 20px 20px">
+      <input class="inp" id="gn" placeholder="${esc(t("chatGroupName"))}">
+      <p class="lbl" style="margin-top:16px">${esc(t("members"))}</p>
+      ${S.members.filter(m=>m.id!==S.meId).map(m=>`
+        <label class="chk"><input type="checkbox" value="${m.id}">${avatar(m,"sm")}<span>${esc(m.name)}</span></label>`).join("")}
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+        <button class="btn ghost-b" data-c>${esc(t("cancel"))}</button>
+        <button class="btn" data-ok>${esc(t("create"))}</button>
+      </div>
+    </div></div>`;
+  root.appendChild(w);
+  const close=()=>w.remove();
+  w.querySelector("#gn").focus();
+  w.querySelector(".x").onclick=close; w.querySelector("[data-c]").onclick=close;
+  w.onclick=e=>{ if(e.target===w) close(); };
+  w.querySelector("[data-ok]").onclick=()=>{
+    const n=w.querySelector("#gn").value.trim();
+    const ids=[...w.querySelectorAll("input[type=checkbox]:checked")].map(i=>i.value);
+    if(!n||!ids.length) return;
+    const c=touch({id:uid(),type:"group",name:n,members:[S.meId,...ids],messages:[]});
+    S.chats.push(c); close(); openConv(c.id); save();
+  };
+}
+
+/* =======================================================================
+   13. Drag & Drop der Aufgaben (Maus gedrückt halten)
+   ======================================================================= */
+let dragState=null, dragMoved=false;
+
+const HOLD_MS = 320;   // so lange die Karte auf dem Handy gedrückt halten
+
+function beginDrag(x,y){
+  const d=dragState; if(!d || d.started) return;
+  d.started=true; dragMoved=true;
+  const g=d.card.cloneNode(true);
+  g.className="card ghost"+(d.card.classList.contains("has-color")?" has-color":"");
+  g.style.width=d.rect.width+"px";
+  g.style.left=(x-(d.offX ?? d.rect.width/2))+"px";
+  g.style.top=(y-(d.offY ?? 24))+"px";
+  document.body.appendChild(g);
+  d.ghost=g;
+  d.card.classList.add("as-placeholder");
+  d.card.style.height=d.rect.height+"px";
+  document.body.classList.add("dragging");
+  if(navigator.vibrate) navigator.vibrate(12);
+}
+
+document.addEventListener("pointerdown", e=>{
+  if(e.button!==0) return;
+  const card=e.target.closest(".card");
+  if(!card || e.target.closest("button")) return;
+  dragMoved=false;
+  const rect=card.getBoundingClientRect();
+  dragState={ card, id:card.dataset.id, x0:e.clientX, y0:e.clientY, started:false, rect,
+              offX:e.clientX-rect.left, offY:e.clientY-rect.top,
+              touch:e.pointerType==="touch", ready:e.pointerType!=="touch", hold:null, ghost:null };
+  if(dragState.touch){
+    // Erst nach kurzem Halten ziehen – sonst bleibt normales Wischen möglich
+    dragState.hold=setTimeout(()=>{ if(dragState){ dragState.ready=true; beginDrag(dragState.x0,dragState.y0); } }, HOLD_MS);
+  }
+});
+
+document.addEventListener("pointermove", e=>{
+  if(!dragState) return;
+  const d=dragState;
+  const dx=e.clientX-d.x0, dy=e.clientY-d.y0;
+
+  if(!d.started){
+    if(!d.ready){                       // Finger bewegt, bevor gehalten wurde -> scrollen lassen
+      if(Math.hypot(dx,dy)>8){ clearTimeout(d.hold); dragState=null; }
+      return;
+    }
+    if(Math.hypot(dx,dy)<6) return;
+    beginDrag(e.clientX,e.clientY);
+  }
+
+  const g=d.ghost;
+  g.style.left=(e.clientX-d.offX)+"px";
+  g.style.top=(e.clientY-d.offY)+"px";
+
+  // am Rand automatisch scrollen
+  const board=document.getElementById("board"), br=board.getBoundingClientRect();
+  const edge = window.innerWidth<820 ? 60 : 70;
+  if(e.clientX>br.right-edge) board.scrollLeft+=14;
+  else if(e.clientX<br.left+edge) board.scrollLeft-=14;
+
+  const el=document.elementFromPoint(e.clientX,e.clientY);
+  const col=el?.closest(".col");
+  if(!col) return;
+  const body=col.querySelector(".col-body");
+  const cards=[...body.querySelectorAll(".card")].filter(c=>c!==d.card);
+  let before=null;
+  for(const c of cards){
+    const r=c.getBoundingClientRect();
+    if(e.clientY < r.top + r.height/2){ before=c; break; }
+  }
+  const hint=body.querySelector(".col-empty");
+  if(hint) hint.remove();
+  if(before) body.insertBefore(d.card,before); else body.appendChild(d.card);
+});
+
+// Während des Ziehens darf die Seite nicht mitscrollen
+document.addEventListener("touchmove", e=>{
+  if(dragState && dragState.started) e.preventDefault();
+}, {passive:false});
+
+document.addEventListener("pointerup", e=>{
+  if(!dragState) return;
+  const d=dragState; dragState=null;
+  clearTimeout(d.hold);
+  if(!d.started){ setTimeout(()=>dragMoved=false,0); return; }
+  d.ghost?.remove();
+  document.body.classList.remove("dragging");
+  d.card.classList.remove("as-placeholder");
+  d.card.style.height="";
+
+  const body=d.card.closest(".col-body");
+  const g=group();
+  const f=findTask(d.id);
+  if(body && f){
+    const targetCol=g.columns.find(c=>c.id===body.dataset.body);
+    const index=[...body.querySelectorAll(".card")].indexOf(d.card);
+    f.c.tasks.splice(f.i,1);
+    touch(f.task);
+    targetCol.tasks.splice(index<0?targetCol.tasks.length:index,0,f.task);
+    if(targetCol.id!==f.c.id) notify("n_moved",{u:me().name,t:L(f.task.title),c:L(targetCol.name)},f.task.id);
+    save();
+  }
+  renderBoard();
+  setTimeout(()=>dragMoved=false,30);
+});
+document.addEventListener("pointercancel",()=>{
+  document.body.classList.remove("dragging");
+  if(dragState){ clearTimeout(dragState.hold); if(dragState.started){ dragState.ghost?.remove(); renderBoard(); } }
+  dragState=null; dragMoved=false;
+});
+
+/* =======================================================================
+   14. Start
+   ======================================================================= */
+document.getElementById("q").addEventListener("input", runSearch);
+document.getElementById("q").addEventListener("focus", runSearch);
+document.getElementById("bell").onclick = e=>{ e.stopPropagation();
+  const p=document.getElementById("notifPop"); p.classList.toggle("hidden");
+  document.getElementById("mePop").classList.add("hidden");
+  if(!p.classList.contains("hidden")) renderBell();
+};
+document.getElementById("meBtn").onclick = e=>{ e.stopPropagation();
+  document.getElementById("mePop").classList.toggle("hidden");
+  document.getElementById("notifPop").classList.add("hidden");
+};
+document.getElementById("chatBtn").onclick = ()=>{ closeSidebar(); toggleChat(); };
+document.getElementById("menuBtn").onclick = e=>{ e.stopPropagation(); toggleSidebar(); };
+document.getElementById("scrim").onclick = closeSidebar;
+document.getElementById("searchBtn").onclick = e=>{
+  e.stopPropagation();
+  const s=document.querySelector(".search");
+  const on=!s.classList.contains("open");
+  s.classList.toggle("open",on);
+  if(on) setTimeout(()=>document.getElementById("q").focus(),50);
+  else { document.getElementById("q").value=""; runSearch(); }
+};
+["pointerdown","keydown"].forEach(ev=>document.addEventListener(ev,()=>SYNC.bump(),{passive:true}));
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ SYNC.bump(); SYNC.pull(); SYNC.loop(); } });
+window.addEventListener("online",()=>{ SYNC.mode="on"; SYNC.pull(); });
+document.querySelectorAll(".lang button").forEach(b=>b.onclick=()=>{ S.lang=b.dataset.lang; render(); Prefs.save(); setStatus(SYNC.mode==="on"?"on":"off"); });
+/* Esc schließt immer das oberste Fenster */
+document.addEventListener("keydown", e=>{
+  if(e.key!=="Escape") return;
+  const last=document.getElementById("modalRoot").lastElementChild;
+  if(!last) return;
+  if(last.id==="taskOverlay") closeTask(); else last.remove();
+});
+document.addEventListener("click", e=>{
+  if(!e.target.closest(".search")) document.getElementById("results").classList.remove("open");
+  if(!e.target.closest(".rel")){
+    document.getElementById("notifPop").classList.add("hidden");
+    document.getElementById("mePop").classList.add("hidden");
+  }
+});
+
+/* =======================================================================
+   15. Synchronisation mit dem Server (Netlify Function + Netlify Blobs)
+   -----------------------------------------------------------------------
+   Ohne erreichbaren Server läuft alles unverändert weiter – dann werden die
+   Daten nur lokal im Browser gespeichert.
+   ======================================================================= */
+const SYNC = {
+  url:"/api/board",
+  fast:5000,      // Abfrageintervall, während aktiv gearbeitet wird (ms)
+  slow:30000,     // Abfrageintervall bei Leerlauf (ms)
+  key:null, rev:-1, mode:"off", seenTs:0, everSynced:false,
+  busy:false, pushTimer:null, pollTimer:null, dirty:false, lastAct:0,
+
+  headers(){ return {"Content-Type":"application/json","x-board-key":this.key||""}; },
+  markSynced(){ if(!this.everSynced){ this.everSynced=true; KV.set("pm_synced_v1","1"); } },
+  bump(){ this.lastAct = now(); },
+
+  async start(key){
+    this.key = key;
+    this.everSynced = !!(await KV.get("pm_synced_v1"));
+    this.seenTs = Math.max(0, ...S.notifications.map(n=>n.ts||0));
+    const ok = await this.pull(true);
+    this.mode = ok ? "on" : "off";
+    setStatus(this.mode==="on" ? "on" : "off");
+    this.loop();
+  },
+
+  loop(){
+    clearTimeout(this.pollTimer);
+    const idle = now()-this.lastAct > 120000;
+    const wait = document.hidden ? this.slow*2 : (idle ? this.slow : this.fast);
+    this.pollTimer = setTimeout(async()=>{ await this.pull(); this.loop(); }, wait);
+  },
+
+  async pull(first){
+    if(this.mode==="off" && !first) return false;
+    if(this.busy) return true;
+    this.busy = true;
+    try{
+      const r = await fetch(this.url+"?rev="+this.rev, {headers:this.headers()});
+      if(!r.ok) throw new Error(r.status);
+      const d = await r.json();
+      if(d.me){
+        if(d.me.id) S.meId = d.me.id;
+        S.isAdmin = !!d.me.admin;
+      }
+      if(!d.unchanged){
+        this.rev = d.rev;
+        if(d.state){
+          /* Erster Kontakt dieses Geräts mit dem Server: die eigenen
+             Beispieldaten verwerfen und den Serverstand übernehmen.
+             Sonst würden zwei getrennte Boards nebeneinander entstehen. */
+          if(!this.everSynced) adoptRemote(d.state); else applyRemote(d.state);
+          this.markSynced();
+        }
+        else if(first){ this.dirty=true; }          // Server noch leer: eigenen Stand hochladen
+      }
+      if(this.mode==="off"){ this.mode="on"; }
+      setStatus("on");
+      this.busy = false;
+      if(this.dirty) this.send();
+      return true;
+    }catch(e){
+      this.busy = false;
+      if(!first){ this.mode="off"; setStatus("off"); }
+      return false;
+    }
+  },
+
+  push(){
+    this.bump();
+    this.dirty = true;
+    if(this.mode==="off") return;
+    setStatus("wait");
+    clearTimeout(this.pushTimer);
+    this.pushTimer = setTimeout(()=>this.send(), 700);
+  },
+
+  async send(retry){
+    if(this.mode==="off" || this.busy) return;
+    this.busy = true; this.dirty = false;
+    try{
+      const r = await fetch(this.url, {
+        method:"PUT", headers:this.headers(),
+        body: JSON.stringify({rev:this.rev, state:shared()})
+      });
+      if(r.status===409){                       // jemand war schneller: zusammenführen und erneut senden
+        const d = await r.json();
+        this.rev = d.rev;
+        if(d.state) applyRemote(d.state);
+        this.busy = false;
+        if(!retry) return this.send(true);
+        this.dirty = true;
+        return;
+      }
+      if(!r.ok) throw new Error(r.status);
+      const d = await r.json();
+      this.rev = d.rev;
+      this.busy = false;
+      clearPwNew();
+      this.markSynced();
+      setStatus("on");
+    }catch(e){
+      this.busy = false; this.dirty = true;
+      this.mode = "off"; setStatus("off");
+      setTimeout(()=>{ this.mode="on"; this.pull(); }, 8000);   // später erneut versuchen
+    }
+  }
+};
+
+function setStatus(s){
+  const el=document.getElementById("syncDot"); if(!el) return;
+  el.className = "sync-dot "+s;
+  el.title = s==="on" ? t("syncOn") : (s==="wait" ? t("syncWait") : t("syncOff"));
+}
+
+/* ---------- Zusammenführen zweier Stände ----------
+   Jedes Objekt hat eine Kennung (id) und einen Änderungszeitpunkt (mt).
+   Bei Konflikten gewinnt die jüngere Version, gelöschte Objekte bleiben
+   dank Löschvermerk (tomb) gelöscht. So geht nichts verloren, auch wenn
+   zwei Personen gleichzeitig arbeiten. */
+const MT = o => (o && (o.mt || o.ts)) || 0;
+
+function mergeList(a=[], b=[], tomb={}, keepOrder){
+  const map = new Map();
+  [...(a||[]), ...(b||[])].forEach(it=>{
+    if(!it || !it.id) return;
+    const cur = map.get(it.id);
+    if(!cur || MT(it) > MT(cur)) map.set(it.id, it);
+  });
+  const out=[];
+  map.forEach((it,id)=>{ if((tomb[id]||0) <= MT(it)) out.push(it); });
+  if(keepOrder==="ts") out.sort((x,y)=>(x.ts||0)-(y.ts||0));
+  return out;
+}
+
+function mergeTask(a,b,tomb){
+  const win = (!a) ? b : (!b ? a : (MT(b)>MT(a) ? b : a));
+  const out = Object.assign({}, win);
+  out.notes       = mergeList(a&&a.notes,       b&&b.notes,       tomb, "ts");
+  out.checklist   = mergeList(a&&a.checklist,   b&&b.checklist,   tomb, "ts");
+  out.attachments = mergeList(a&&a.attachments, b&&b.attachments, tomb, "ts");
+  return out;
+}
+
+function indexTasks(state){
+  const m={};
+  (state.groups||[]).forEach(g=>(g.columns||[]).forEach(c=>(c.tasks||[]).forEach((t,i)=>{ m[t.id]={t,col:c.id,ord:i}; })));
+  return m;
+}
+
+function mergeShared(a,b){
+  const tomb={};
+  [a.tomb||{}, b.tomb||{}].forEach(src=>{ for(const k in src) tomb[k]=Math.max(tomb[k]||0, src[k]); });
+
+  // Mitglieder und Chats
+  const members = mergeList(a.members, b.members, tomb);
+  const watchers = mergeList(a.watchers, b.watchers, tomb);
+  const chatsRaw = mergeList(a.chats, b.chats, tomb);
+  const chats = chatsRaw.map(c=>{
+    const ca=(a.chats||[]).find(x=>x.id===c.id), cb=(b.chats||[]).find(x=>x.id===c.id);
+    return Object.assign({}, c, {messages: mergeList(ca&&ca.messages, cb&&cb.messages, tomb, "ts")});
+  });
+
+  // Gruppen und Spalten (ohne Aufgaben)
+  const groups = mergeList(
+    (a.groups||[]).map(g=>Object.assign({},g)),
+    (b.groups||[]).map(g=>Object.assign({},g)), tomb
+  ).map(g=>{
+    const ga=(a.groups||[]).find(x=>x.id===g.id), gb=(b.groups||[]).find(x=>x.id===g.id);
+    const cols = mergeList(ga&&ga.columns, gb&&gb.columns, tomb)
+      .map(c=>Object.assign({}, c, {tasks:[]}));
+    // Reihenfolge der Spalten aus der jüngeren Gruppe übernehmen
+    const order = ((MT(gb)>MT(ga) ? gb : ga)||{}).columns||[];
+    cols.sort((x,y)=>{
+      const ix=order.findIndex(c=>c.id===x.id), iy=order.findIndex(c=>c.id===y.id);
+      return (ix<0?999:ix)-(iy<0?999:iy);
+    });
+    return Object.assign({}, g, {columns:cols});
+  });
+
+  // Aufgaben einsortieren
+  const A=indexTasks(a), B=indexTasks(b);
+  const colMap={}; groups.forEach(g=>g.columns.forEach(c=>colMap[c.id]=c));
+  const fallback = groups[0] && groups[0].columns[0];
+  const buckets = new Map();
+  new Set([...Object.keys(A),...Object.keys(B)]).forEach(id=>{
+    const ea=A[id], eb=B[id];
+    const task = mergeTask(ea&&ea.t, eb&&eb.t, tomb);
+    if((tomb[id]||0) > MT(task)) return;
+    const win = (!ea) ? eb : (!eb ? ea : (MT(eb.t)>MT(ea.t) ? eb : ea));
+    const col = colMap[win.col] || fallback;
+    if(!col) return;
+    if(!buckets.has(col.id)) buckets.set(col.id, []);
+    buckets.get(col.id).push({task, ord:win.ord});
+  });
+  buckets.forEach((list,colId)=>{
+    list.sort((x,y)=>x.ord-y.ord);
+    colMap[colId].tasks = list.map(x=>x.task);
+  });
+
+  const notifications = mergeList(a.notifications, b.notifications, {})
+    .sort((x,y)=>(y.ts||0)-(x.ts||0)).slice(0,60);
+
+  return {members, groups, chats, notifications, tomb, watchers};
+}
+
+/* Serverstand vollständig übernehmen (erster Abgleich eines Geräts) */
+function adoptRemote(remote){
+  SHARED_KEYS.forEach(k=>{ if(remote[k]!==undefined) S[k]=remote[k]; });
+  S.tomb = S.tomb || {};
+  if(!S.groups.find(g=>g.id===S.activeGroup)) S.activeGroup=(S.groups[0]||{}).id;
+  if(!S.members.find(m=>m.id===S.meId) && SYNC.mode!=="on") S.meId=(S.members[0]||{}).id;
+  SYNC.seenTs = Math.max(0, ...S.notifications.map(n=>n.ts||0));
+  if(!document.body.classList.contains("locked")) render();
+  Store.save(); Prefs.save();
+}
+
+/* Serverstand zusammenführen, eigene Änderungen behalten, Neues kurz anzeigen */
+function applyRemote(remote){
+  const merged = mergeShared(shared(), remote);
+  SHARED_KEYS.forEach(k=>{ S[k]=merged[k]; });
+  if(!S.groups.find(g=>g.id===S.activeGroup)) S.activeGroup=(S.groups[0]||{}).id;
+  if(!S.members.find(m=>m.id===S.meId) && SYNC.mode!=="on") S.meId=(S.members[0]||{}).id;
+
+  const fresh = S.notifications.filter(n=>(n.ts||0)>SYNC.seenTs && n.by!==S.meId);
+  SYNC.seenTs = Math.max(SYNC.seenTs, ...S.notifications.map(n=>n.ts||0), 0);
+  fresh.slice(0,3).forEach(n=>toast(t(n.key,n.params), n.taskId));
+
+  if(!document.body.classList.contains("locked")){
+    render();
+    const open=document.getElementById("taskOverlay");
+    if(open){ findTask(open.dataset.task) ? drawTask() : closeTask(); }
+  }
+  Store.save();
+}
+
+/* =======================================================================
+   16. Zugangsschutz
+   -----------------------------------------------------------------------
+   Die Zugangsdaten stehen nicht im Klartext in der Datei, sondern nur als
+   SHA-256-Prüfsumme von "Benutzername:Passwort".
+   Neue Zugangsdaten erzeugen:  echo -n "Name:Passwort" | shasum -a 256
+   ======================================================================= */
+const AUTH_HASH = "3177b2ea96d8ffb966601c8f413b0ba3734355408ea0ca558a065829c83b6d83";
+const AUTH_ALT  = "==gNyAjMulmdltmclRXZwpjbpZXZLJXZ0VGU";   // Reserve ohne crypto.subtle
+const AUTH_DAYS = 7;                                        // Anmeldung bleibt so lange gültig
+
+async function hashOf(str){
+  if(window.crypto && crypto.subtle){
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+  }
+  return null;
+}
+/* Erst den Server fragen (dort liegen die Konten der Mitarbeiter),
+   sonst gegen den Hauptzugang in dieser Datei prüfen. */
+async function checkLogin(user,pass){
+  const combo = user.trim()+":"+pass;
+  const hx = await hashOf(combo);
+  if(hx){
+    try{
+      const r = await fetch(SYNC.url+"?rev=-1", {headers:{"x-board-key":hx}});
+      if(r.ok){ const d=await r.json(); return {key:hx, me:d.me||null, server:true}; }
+      if(r.status===401) return false;
+    }catch(e){ /* kein Server erreichbar -> örtlich weiter */ }
+    return hx===AUTH_HASH ? {key:hx, me:null, server:false} : false;
+  }
+  try{ return btoa(combo)===AUTH_ALT.split("").reverse().join("") ? {key:AUTH_HASH, me:null, server:false} : false; }
+  catch(e){ return false; }
+}
+async function authValid(){
+  const v = await KV.get("pm_auth_v1");
+  try{ const d = v?JSON.parse(v):null; return !!(d && Date.now()-d.ts < AUTH_DAYS*86400000); }
+  catch(e){ return false; }
+}
+async function authRemember(key){
+  await KV.set("pm_auth_v1", JSON.stringify({ts:Date.now()}));
+  if(key) await KV.set("pm_key_v1", key);
+}
+async function signOut(){ await KV.del("pm_auth_v1"); await KV.del("pm_key_v1"); location.reload(); }
+function paintGate(){
+  document.getElementById("gTitle").textContent=t("signInTitle");
+  document.getElementById("gSub").textContent=t("signInSub");
+  document.getElementById("gUser").placeholder=t("loginUser");
+  document.getElementById("gPass").placeholder=t("passPh");
+  document.getElementById("gBtn").textContent=t("signIn");
+  document.querySelectorAll("[data-glang]").forEach(b=>b.classList.toggle("on",b.dataset.glang===S.lang));
+  const e=document.getElementById("gErr"); if(e.textContent.trim()) e.textContent=t("wrong");
+}
+async function unlock(){
+  document.body.classList.remove("locked");
+  document.getElementById("gate")?.remove();
+  render();
+  const key = await KV.get("pm_key_v1") || AUTH_HASH;
+  SYNC.start(key);
+}
+
+(async function init(){
+  document.body.classList.add("locked");
+
+  const saved = await Store.load();                 // letzter bekannter Stand (lokale Kopie)
+  if(saved && saved.groups && saved.groups.length) SHARED_KEYS.forEach(k=>{ if(saved[k]) S[k]=saved[k]; });
+
+  const prefs = await Prefs.load();                 // Sprache, angemeldete Person, gelesene Hinweise
+  if(prefs){
+    if(prefs.lang) S.lang=prefs.lang;
+    if(prefs.meId) S.meId=prefs.meId;
+    if(prefs.isAdmin!==undefined) S.isAdmin=prefs.isAdmin;
+    if(prefs.activeGroup) S.activeGroup=prefs.activeGroup;
+    S.readIds = prefs.readIds || [];
+  }
+  if(!S.groups.find(g=>g.id===S.activeGroup)) S.activeGroup=(S.groups[0]||{}).id;
+  if(!S.members.find(m=>m.id===S.meId)) S.meId=(S.members[0]||{}).id;
+  S.activeChat=null;
+
+  if(await authValid()){ S.isAdmin=true; unlock(); return; }
+
+  paintGate();
+  document.querySelectorAll("[data-glang]").forEach(b=>b.onclick=()=>{ S.lang=b.dataset.glang; paintGate(); });
+  const u=document.getElementById("gUser"), p=document.getElementById("gPass"),
+        btn=document.getElementById("gBtn"), err=document.getElementById("gErr"),
+        card=document.querySelector(".gate-card");
+  u.focus();
+  const submit=async()=>{
+    btn.disabled=true; btn.style.opacity=".6";
+    const ok = await checkLogin(u.value, p.value);
+    btn.disabled=false; btn.style.opacity="";
+    if(ok){
+      if(ok.me){ S.meId=ok.me.id||S.meId; S.isAdmin=!!ok.me.admin; }
+      else S.isAdmin=true;                       // örtlicher Betrieb: volle Rechte
+      await authRemember(ok.key);
+      unlock();
+    }
+    else{ err.textContent=t("wrong"); p.value=""; p.focus();
+          card.classList.add("shake"); setTimeout(()=>card.classList.remove("shake"),320); }
+  };
+  btn.onclick=submit;
+  [u,p].forEach(el=>el.onkeydown=e=>{ if(e.key==="Enter") submit(); });
+})();
+
+</script>
+</body>
+</html>
