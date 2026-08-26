@@ -118,7 +118,9 @@ button{cursor:pointer;border:0;background:none}
 .col-menu{margin-left:auto;color:var(--ink-3);padding:2px 6px;border-radius:6px;opacity:0}
 .col:hover .col-menu{opacity:1}
 .col-menu:hover{background:rgba(0,0,0,.06)}
-.col-body{padding:4px 10px 10px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:8px;min-height:24px}
+.col-body{padding:4px 10px 10px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:8px;min-height:24px;flex:1 1 auto}
+/* Karten dürfen nicht zusammengedrückt werden – sonst überlappen die Texte */
+.col-body>*{flex:0 0 auto}
 .col-add{margin:0 10px 10px;padding:8px;border-radius:10px;color:var(--ink-3);font-weight:500;text-align:left;font-size:13px}
 .col-add:hover{background:rgba(0,0,0,.05);color:var(--ink)}
 .add-col{width:230px;flex:0 0 230px;border-radius:var(--radius);border:1px dashed #c9c9d1;color:var(--ink-3);padding:14px;font-weight:500;text-align:left}
@@ -901,14 +903,14 @@ function cardHTML(x){
     ${x.color?`<span class="card-stripe" style="background:${x.color}"></span>`:""}
     ${p?`<div class="card-top"><span class="pill" style="background:${p.bg};color:${p.fg}">${esc(p.label)}</span></div>`:""}
     <h4>${esc(L(x.title))}</h4>
-    <div class="card-meta">
+    ${(x.due||checks.length||notes||files||(S.isAdmin&&Array.isArray(x.visible)))?`<div class="card-meta">
       ${x.due?`<span class="${dueCls}">${esc(dueLabel(x.due))}</span>`:""}
       ${checks.length?`<span class="mi">☑ ${done}/${checks.length}</span>`:""}
       ${notes?`<span class="mi">💬 ${notes}</span>`:""}
       ${files?`<span class="mi">📎 ${files}</span>`:""}
       ${(S.isAdmin&&Array.isArray(x.visible))?`<span class="mi" title="${esc(t("visSome"))}">🔒</span>`:""}
-    </div>
-    <div class="card-foot"><div class="avatars">${(x.assignees||[]).map(id=>avatar(member(id),"sm")).join("")}</div></div>
+    </div>`:""}
+    ${(x.assignees||[]).length?`<div class="card-foot"><div class="avatars">${x.assignees.map(id=>avatar(member(id),"sm")).join("")}</div></div>`:""}
   </article>`;
 }
 
