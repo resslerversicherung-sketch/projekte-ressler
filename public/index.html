@@ -461,7 +461,7 @@ const I18N = {
     title:"Titel", description:"Beschreibung", descriptionPh:"Worum geht es?",
     priority:"Priorität", high:"Hoch", medium:"Mittel", low:"Niedrig", none:"Keine",
     due:"Fällig am", color:"Farbe", assignees:"Zugewiesen", checklist:"Checkliste",
-    addCheck:"Punkt hinzufügen", attachments:"Anhänge", dropHere:"Dokumente oder Bilder hierher ziehen", pickFile:"Datei oder Foto auswählen",
+    addCheck:"Punkt hinzufügen", attachments:"Anhänge", download:"Klicken zum Herunterladen", dlFail:"Datei konnte nicht geöffnet werden.", dropHere:"Dokumente oder Bilder hierher ziehen", pickFile:"Datei oder Foto auswählen",
     orClick:"oder klicken zum Auswählen", notes:"Notizen", notePh:"Notiz schreiben…",
     reply:"Antworten", replyPh:"Antwort schreiben…", send:"Senden", cancel:"Abbrechen",
     save:"Speichern", del:"Löschen", deleteTask:"Aufgabe löschen", rename:"Umbenennen",
@@ -522,7 +522,7 @@ const I18N = {
     title:"Cím", description:"Leírás", descriptionPh:"Miről szól?",
     priority:"Prioritás", high:"Magas", medium:"Közepes", low:"Alacsony", none:"Nincs",
     due:"Határidő", color:"Szín", assignees:"Hozzárendelve", checklist:"Ellenőrzőlista",
-    addCheck:"Új pont", attachments:"Mellékletek", dropHere:"Húzd ide a dokumentumokat vagy képeket", pickFile:"Fájl vagy fénykép kiválasztása",
+    addCheck:"Új pont", attachments:"Mellékletek", download:"Kattints a letöltéshez", dlFail:"A fájl nem nyitható meg.", dropHere:"Húzd ide a dokumentumokat vagy képeket", pickFile:"Fájl vagy fénykép kiválasztása",
     orClick:"vagy kattints a tallózáshoz", notes:"Jegyzetek", notePh:"Írj jegyzetet…",
     reply:"Válasz", replyPh:"Írj választ…", send:"Küldés", cancel:"Mégse",
     save:"Mentés", del:"Törlés", deleteTask:"Feladat törlése", rename:"Átnevezés",
@@ -1104,13 +1104,13 @@ function drawTask(){
         <div class="block">
           <p class="lbl">${esc(t("attachments"))}</p>
           ${(x.attachments||[]).length?`<div class="files">${x.attachments.map(a=>`
-            <div class="file">
+            <div class="file" onclick="downloadFile('${a.id}')" title="${esc(t("download"))}: ${esc(a.name)}" style="cursor:pointer">
               ${a.type&&a.type.startsWith("image/")
-                ? `<a href="${a.data}" target="_blank" rel="noopener"><img src="${a.data}" alt="${esc(a.name)}"></a>`
-                : `<a href="${a.data}" download="${esc(a.name)}" class="doc" style="text-decoration:none">📄</a>`}
+                ? `<img src="${a.data}" alt="${esc(a.name)}">`
+                : `<div class="doc">📄</div>`}
               <div class="fn" title="${esc(a.name)}">${esc(a.name)}</div>
               <div class="fn" style="padding-top:0;color:var(--ink-3)" title="${esc(t("uploadedOn"))}: ${esc(fmtDT(a.ts||a.mt))}">${esc(fmtDT(a.ts||a.mt))}</div>
-              <button class="rm" onclick="delFile('${a.id}')">✕</button>
+              <button class="rm" onclick="event.stopPropagation();delFile('${a.id}')">✕</button>
             </div>`).join("")}</div>`:""}
           <div class="drop" id="drop" onclick="document.getElementById('fileIn').click()">
             ${TOUCH ? `<div style="font-size:20px">＋</div>${esc(t("pickFile"))}`
@@ -1308,6 +1308,33 @@ function addFiles(list){
     };
     r.readAsDataURL(file);
   });
+}
+/* Anhänge liegen als data:-Adresse in den Daten. Browser verweigern das
+   direkte Öffnen davon, deshalb bauen wir daraus eine echte Datei. */
+function dataUrlToBlob(d){
+  const komma = d.indexOf(",");
+  const kopf = d.slice(0, komma), rest = d.slice(komma+1);
+  const mime = (kopf.match(/^data:([^;]+)/) || [])[1] || "application/octet-stream";
+  if(!/;base64/i.test(kopf)) return new Blob([decodeURIComponent(rest)], {type:mime});
+  const bin = atob(rest);
+  const arr = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], {type:mime});
+}
+function downloadFile(id){
+  const f=currentTask(); if(!f) return;
+  const a=(f.task.attachments||[]).find(x=>x.id===id); if(!a || !a.data) return;
+  try{
+    const url = a.data.startsWith("data:") ? URL.createObjectURL(dataUrlToBlob(a.data)) : a.data;
+    const el = document.createElement("a");
+    el.href = url;
+    el.download = a.name || "datei";
+    el.rel = "noopener";
+    document.body.appendChild(el);
+    el.click();
+    el.remove();
+    if(url.startsWith("blob:")) setTimeout(()=>URL.revokeObjectURL(url), 20000);
+  }catch(e){ toast(t("dlFail")); }
 }
 function delFile(id){
   const f=currentTask(); if(!f) return;
