@@ -264,6 +264,11 @@ textarea.inp{resize:vertical;min-height:74px;font-family:inherit}
 .icon-send{width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 38px}
 .hint{color:var(--ink-3);font-size:12.5px;text-align:center;padding:26px 14px}
 .hidden{display:none!important}
+.g-color{width:10px;height:10px;border-radius:3px;flex:0 0 auto;display:inline-block}
+.sort-ghost{box-shadow:var(--shadow-lg);transform:rotate(1deg);opacity:.96;border-radius:12px;background:var(--panel)}
+.sorting{opacity:.35}
+.col-head{cursor:grab}
+.col-head:active{cursor:grabbing}
 .conv-badge{min-width:20px;height:20px;border-radius:10px;background:var(--accent);color:#fff;
   font-size:11px;font-weight:650;display:flex;align-items:center;justify-content:center;padding:0 6px}
 .adm-row{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
@@ -460,6 +465,7 @@ const I18N = {
     save:"Speichern", del:"Löschen", deleteTask:"Aufgabe löschen", rename:"Umbenennen",
     today:"Heute", overdue:"Überfällig", tomorrow:"Morgen",
     createdOn:"Erstellt am", changedOn:"Zuletzt geändert", uploadedOn:"Hochgeladen am",
+    editGroup:"Gruppe bearbeiten", dragHint:"Zum Umsortieren gedrückt halten und ziehen",
     projectCreated:"Projekt erstellt am",
     namePh:"Name", groupNamePh:"Name der Gruppe", columnNamePh:"Name des Task-Feldes", taskNamePh:"Was ist zu tun?",
     photo:"Foto", members:"Mitglieder", create:"Erstellen", chatGroupName:"Gruppenname",
@@ -520,6 +526,7 @@ const I18N = {
     save:"Mentés", del:"Törlés", deleteTask:"Feladat törlése", rename:"Átnevezés",
     today:"Ma", overdue:"Lejárt", tomorrow:"Holnap",
     createdOn:"Létrehozva", changedOn:"Utoljára módosítva", uploadedOn:"Feltöltve",
+    editGroup:"Csoport szerkesztése", dragHint:"Átrendezéshez tartsd nyomva és húzd",
     projectCreated:"A projekt létrehozva:",
     namePh:"Név", groupNamePh:"A csoport neve", columnNamePh:"A feladatmező neve", taskNamePh:"Mi a teendő?",
     photo:"Fénykép", members:"Tagok", create:"Létrehozás", chatGroupName:"Csoport neve",
@@ -569,7 +576,7 @@ function seed(){
   return {
     lang:"de", meId:m1.id, isAdmin:true, members:[m1,m2,m3],
     groups:[{
-      id:uid(), name:{de:"Website Relaunch",hu:"Weboldal megújítás"}, created:Date.now()-604800000,
+      id:uid(), name:{de:"Website Relaunch",hu:"Weboldal megújítás"}, created:Date.now()-604800000, color:"#0071e3",
       columns:[
         {id:uid(), name:{de:"Zu erledigen",hu:"Teendő"}, color:"#8e8e93", tasks:[
           {id:uid(), title:{de:"Startseite gestalten",hu:"Kezdőlap megtervezése"}, desc:{de:"Entwurf für die neue Startseite inkl. Bildern.",hu:"Vázlat az új kezdőlaphoz képekkel."},
@@ -590,7 +597,7 @@ function seed(){
         ]}
       ]
     },{
-      id:uid(), name:{de:"Marketing 2026",hu:"Marketing 2026"}, created:Date.now()-259200000,
+      id:uid(), name:{de:"Marketing 2026",hu:"Marketing 2026"}, created:Date.now()-259200000, color:"#af52de",
       columns:[
         {id:uid(), name:{de:"Ideen",hu:"Ötletek"}, color:"#af52de", tasks:[]},
         {id:uid(), name:{de:"Geplant",hu:"Tervezett"}, color:"#0071e3", tasks:[]},
@@ -836,9 +843,12 @@ function renderSidebar(){
     <div>
       <div class="side-h"><span>${esc(t("groups"))}</span>${S.isAdmin?`<button onclick="addGroup()" title="${esc(t("newGroup"))}">+</button>`:""}</div>
       ${myGroups().map(g=>`
-        <div class="g-item ${g.id===S.activeGroup?"on":""}" onclick="selectGroup('${g.id}')">
-          <span>▦</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(L(g.name))}</span>
+        <div class="g-item ${g.id===S.activeGroup?"on":""}" data-g="${g.id}" onclick="gClick(event,'${g.id}')"
+             title="${S.isAdmin?esc(t("dragHint")):""}">
+          <span class="g-color" style="background:${g.color||"#8e8e93"}"></span>
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(L(g.name))}</span>
           ${(S.isAdmin&&Array.isArray(g.visible))?`<span title="${esc(t("visSome"))}" style="font-size:11px">🔒</span>`:""}
+          ${S.isAdmin?`<button class="g-x" onclick="event.stopPropagation();editGroup('${g.id}')" title="${esc(t("editGroup"))}">✎</button>`:""}
           ${S.isAdmin?`<button class="g-x" onclick="event.stopPropagation();delGroup('${g.id}')">✕</button>`:""}
         </div>`).join("")}
       ${S.isAdmin?`<button class="side-add" onclick="addGroup()">+ ${esc(t("newGroup"))}</button>`:""}
@@ -857,7 +867,8 @@ function renderSidebar(){
 function renderBoard(){
   const g=group();
   const keepScroll=document.getElementById("board").scrollLeft;
-  document.getElementById("boardTitle").textContent = L(g.name);
+  document.getElementById("boardTitle").innerHTML =
+    `<span class="g-color" style="background:${g.color||"#8e8e93"};width:12px;height:12px;margin-right:9px"></span>${esc(L(g.name))}`;
   const total = g.columns.reduce((s,c)=>s+seenTasks(c,g).length,0);
   document.getElementById("boardSub").textContent =
     `${total} ${t("tasks")} · ${g.columns.length} ${t("columns")}`
@@ -867,7 +878,7 @@ function renderBoard(){
     <section class="col" data-col="${c.id}">
       <div class="col-head">
         <span class="col-dot" style="background:${c.color||"#8e8e93"}"></span>
-        <span class="col-title" onclick="${S.isAdmin?`renameColumn('${c.id}')`:""}">${esc(L(c.name))}</span>
+        <span class="col-title" onclick="${S.isAdmin?`if(!dragMoved) renameColumn('${c.id}')`:""}">${esc(L(c.name))}</span>
         <span class="col-count">${seenTasks(c,g).length}</span>
         ${S.isAdmin?`<button class="col-menu" onclick="delColumn('${c.id}')" title="${esc(t("del"))}">✕</button>`:""}
       </div>
@@ -946,11 +957,51 @@ function toggleSidebar(){
 async function addGroup(){
   const n=await askText(t("newGroup"), t("groupNamePh"));
   if(!n) return;
-  const g=touch({id:uid(),name:n,created:now(),columns:[
+  const g=touch({id:uid(),name:n,created:now(),color:COLORS[S.groups.length%COLORS.length],columns:[
     touch({id:uid(),name:t("newColumn"),color:"#8e8e93",tasks:[]})
   ]});
   S.groups.push(g); S.activeGroup=g.id; render(); save();
 }
+function gClick(e,id){ if(!dragMoved) selectGroup(id); }
+
+/* Aufgabengruppe umbenennen und einfärben */
+function editGroup(id){
+  if(!S.isAdmin) return;
+  const g=S.groups.find(x=>x.id===id); if(!g) return;
+  const w=document.createElement("div"); w.className="overlay";
+  w.innerHTML=`<div class="sheet narrow" style="margin-top:10vh">
+    <div class="sheet-head"><b style="font-size:16px">${esc(t("editGroup"))}</b><button class="x">✕</button></div>
+    <div style="padding:16px 20px 20px">
+      <p class="lbl">${esc(t("fieldName"))}</p>
+      <input class="inp" id="gName" value="${esc(L(g.name))}">
+      <p class="lbl" style="margin-top:16px">${esc(t("color"))}</p>
+      <div class="row" id="gColors">
+        ${COLORS.map(c=>`<span class="swatch ${g.color===c?"on":""}" data-c="${c}" style="background:${c}"></span>`).join("")}
+      </div>
+      ${g.created?`<p style="color:var(--ink-3);font-size:11.5px;margin:16px 0 0">${esc(t("createdOn"))}: ${esc(fmtDT(g.created))}</p>`:""}
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button class="btn ghost-b" data-c>${esc(t("cancel"))}</button>
+        <button class="btn" data-ok>${esc(t("save"))}</button>
+      </div>
+    </div></div>`;
+  document.getElementById("modalRoot").appendChild(w);
+  let color=g.color||null;
+  w.querySelectorAll("#gColors .swatch").forEach(s=>s.onclick=()=>{
+    color=s.dataset.c;
+    w.querySelectorAll("#gColors .swatch").forEach(o=>o.classList.toggle("on", o===s));
+  });
+  const close=()=>w.remove();
+  w.querySelector(".x").onclick=close; w.querySelector("[data-c]").onclick=close;
+  w.onclick=e=>{ if(e.target===w) close(); };
+  const inp=w.querySelector("#gName"); inp.focus(); inp.select();
+  const ok=()=>{
+    const n=inp.value.trim(); if(!n) return;
+    g.name=n; g.color=color; touch(g); close(); render(); save();
+  };
+  w.querySelector("[data-ok]").onclick=ok;
+  inp.onkeydown=e=>{ if(e.key==="Enter") ok(); };
+}
+
 async function delGroup(id){
   if(S.groups.length<2) return;
   if(!await askConfirm(t("confirmDelete"))) return;
@@ -1796,6 +1847,88 @@ function newChatGroup(){
    ======================================================================= */
 let dragState=null, dragMoved=false;
 
+/* ---- Umsortieren von Task-Feldern (waagerecht) und Aufgabengruppen (senkrecht) ---- */
+let sortDrag = null;
+
+function startSort(e, el, axis, commit){
+  const r = el.getBoundingClientRect();
+  sortDrag = { el, axis, commit, x0:e.clientX, y0:e.clientY,
+               offX:e.clientX-r.left, offY:e.clientY-r.top, w:r.width,
+               started:false, ghost:null, touch:e.pointerType==="touch",
+               ready:e.pointerType!=="touch", hold:null };
+  if(sortDrag.touch){
+    sortDrag.hold = setTimeout(()=>{ if(sortDrag){ sortDrag.ready=true; beginSort(sortDrag.x0, sortDrag.y0); } }, HOLD_MS);
+  }
+}
+function beginSort(x,y){
+  const d=sortDrag; if(!d||d.started) return;
+  d.started=true; dragMoved=true;
+  const g=d.el.cloneNode(true);
+  g.className = d.el.className+" sort-ghost";
+  g.style.cssText += `position:fixed;z-index:999;pointer-events:none;margin:0;width:${d.w}px;left:${x-d.offX}px;top:${y-d.offY}px;`;
+  document.body.appendChild(g);
+  d.ghost=g;
+  d.el.classList.add("sorting");
+  document.body.classList.add("dragging");
+  if(navigator.vibrate) navigator.vibrate(12);
+}
+document.addEventListener("pointermove", e=>{
+  const d=sortDrag; if(!d) return;
+  const dx=e.clientX-d.x0, dy=e.clientY-d.y0;
+  if(!d.started){
+    if(!d.ready){ if(Math.hypot(dx,dy)>8){ clearTimeout(d.hold); sortDrag=null; } return; }
+    if(Math.hypot(dx,dy)<6) return;
+    beginSort(e.clientX, e.clientY);
+  }
+  d.ghost.style.left=(e.clientX-d.offX)+"px";
+  d.ghost.style.top =(e.clientY-d.offY)+"px";
+
+  const parent=d.el.parentElement;
+  const gleiche=[...parent.children].filter(c=>c!==d.el && c.tagName===d.el.tagName && c.className.split(" ")[0]===d.el.className.split(" ")[0]);
+  let before=null;
+  for(const c of gleiche){
+    const r=c.getBoundingClientRect();
+    if(d.axis==="x" ? e.clientX < r.left+r.width/2 : e.clientY < r.top+r.height/2){ before=c; break; }
+  }
+  if(before) parent.insertBefore(d.el, before);
+  else{
+    const last=gleiche[gleiche.length-1];
+    if(last && last.nextSibling!==d.el) parent.insertBefore(d.el, last.nextSibling);
+  }
+
+  if(d.axis==="x"){                          // am Rand mitscrollen
+    const board=document.getElementById("board"), br=board.getBoundingClientRect();
+    if(e.clientX>br.right-70) board.scrollLeft+=14;
+    else if(e.clientX<br.left+70) board.scrollLeft-=14;
+  }
+});
+document.addEventListener("pointerup", ()=>{
+  const d=sortDrag; if(!d) return;
+  sortDrag=null; clearTimeout(d.hold);
+  if(!d.started){ setTimeout(()=>dragMoved=false,0); return; }
+  d.ghost?.remove();
+  d.el.classList.remove("sorting");
+  document.body.classList.remove("dragging");
+  d.commit(d.el.parentElement);
+  setTimeout(()=>dragMoved=false,30);
+});
+
+function commitColumns(parent){
+  const g=group();
+  const order=[...parent.querySelectorAll(".col")].map(c=>c.dataset.col);
+  g.columns.sort((a,b)=>order.indexOf(a.id)-order.indexOf(b.id));
+  touch(g); renderBoard(); save();
+}
+function commitGroups(parent){
+  const order=[...parent.querySelectorAll(".g-item")].map(el=>el.dataset.g);
+  S.groups.sort((a,b)=>{
+    const ia=order.indexOf(a.id), ib=order.indexOf(b.id);
+    return (ia<0?999:ia)-(ib<0?999:ib);
+  });
+  S.groups.forEach(touch);
+  render(); save();
+}
+
 const HOLD_MS = 320;   // so lange die Karte auf dem Handy gedrückt halten
 
 function beginDrag(x,y){
@@ -1816,6 +1949,15 @@ function beginDrag(x,y){
 
 document.addEventListener("pointerdown", e=>{
   if(e.button!==0) return;
+
+  // Inhaber darf Task-Felder und Aufgabengruppen umsortieren
+  if(S.isAdmin && !e.target.closest("button") && !e.target.closest("input,textarea,select")){
+    const head=e.target.closest(".col-head");
+    if(head){ dragMoved=false; startSort(e, head.closest(".col"), "x", commitColumns); return; }
+    const gi=e.target.closest(".g-item[data-g]");
+    if(gi){ dragMoved=false; startSort(e, gi, "y", commitGroups); return; }
+  }
+
   const card=e.target.closest(".card");
   if(!card || e.target.closest("button")) return;
   dragMoved=false;
@@ -1870,7 +2012,7 @@ document.addEventListener("pointermove", e=>{
 
 // Während des Ziehens darf die Seite nicht mitscrollen
 document.addEventListener("touchmove", e=>{
-  if(dragState && dragState.started) e.preventDefault();
+  if((dragState && dragState.started) || (sortDrag && sortDrag.started)) e.preventDefault();
 }, {passive:false});
 
 document.addEventListener("pointerup", e=>{
@@ -1900,6 +2042,7 @@ document.addEventListener("pointerup", e=>{
 });
 document.addEventListener("pointercancel",()=>{
   document.body.classList.remove("dragging");
+  if(sortDrag){ clearTimeout(sortDrag.hold); sortDrag.ghost?.remove(); sortDrag.el.classList.remove("sorting"); sortDrag=null; render(); }
   if(dragState){ clearTimeout(dragState.hold); if(dragState.started){ dragState.ghost?.remove(); renderBoard(); } }
   dragState=null; dragMoved=false;
 });
