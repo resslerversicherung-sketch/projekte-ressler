@@ -429,7 +429,7 @@ const I18N = {
     syncOn:"Synchronisiert", syncWait:"Wird synchronisiert…", syncOff:"Nur auf diesem Gerät",
     authLost:"Der Server erkennt diesen Zugang nicht. Bitte abmelden und mit dem Hauptzugang PeterKevin anmelden – danach werden die Daten hochgeladen.",
     fileTooBig:"Die Datei ist zu groß (max. 1 MB).",
-    offloading:"Anhänge werden ausgelagert…", offloadFail:"Anhänge konnten nicht ausgelagert werden – die Server-Dateien (lib, worker) fehlen auf dem Server.", offloadDone:"Anhänge ausgelagert – das Board ist wieder schnell.",
+    offloading:"Anhänge werden ausgelagert…", offloadFail:"Anhänge konnten nicht ausgelagert werden – die Server-Dateien (lib, worker) fehlen auf dem Server.", offloadPart:"Einige Anhänge konnten nicht ausgelagert werden. Bitte die Server-Dateien (lib, worker) aktualisieren und erneut versuchen.", offloadDone:"Anhänge ausgelagert – das Board ist wieder schnell.",
     fileMissing:"Anhang nicht gefunden.",
     mailTitle:"E-Mail-Benachrichtigungen", mailOn:"Benachrichtigungen per E-Mail erhalten",
     mailAddr:"Meine E-Mail-Adresse", mailFrom:"Nur bei Änderungen von", mailAll:"Allen im Team",
@@ -501,7 +501,7 @@ const I18N = {
     syncOn:"Szinkronizálva", syncWait:"Szinkronizálás…", syncOff:"Csak ezen az eszközön",
     authLost:"A szerver nem ismeri fel ezt a hozzáférést. Jelentkezz ki, majd be a fő belépővel (PeterKevin) – utána feltöltődnek az adatok.",
     fileTooBig:"A fájl túl nagy (max. 1 MB).",
-    offloading:"Mellékletek áthelyezése…", offloadFail:"A mellékletek áthelyezése nem sikerült – a szerveroldali fájlok (lib, worker) hiányoznak.", offloadDone:"A mellékletek áthelyezve – a tábla ismét gyors.",
+    offloading:"Mellékletek áthelyezése…", offloadFail:"A mellékletek áthelyezése nem sikerült – a szerveroldali fájlok (lib, worker) hiányoznak.", offloadPart:"Néhány melléklet nem került át. Frissítsd a szerveroldali fájlokat (lib, worker), majd próbáld újra.", offloadDone:"A mellékletek áthelyezve – a tábla ismét gyors.",
     fileMissing:"A melléklet nem található.",
     mailTitle:"E-mail értesítések", mailOn:"Értesítést kérek e-mailben",
     mailAddr:"Az e-mail címem", mailFrom:"Csak ezek változtatásairól", mailAll:"Mindenki",
@@ -1347,8 +1347,13 @@ const FILES = new Map();
 async function putFile(id, name, type, dataUrl, taskId){
   if(SYNC.mode!=="on") return false;
   try{
-    const r = await fetch("/api/file", {method:"POST", headers:SYNC.headers(),
-      body: JSON.stringify({id, name, type, data:dataUrl, task:taskId, ts:now()})});
+    const adr = "/api/file?id="+encodeURIComponent(id)
+              + "&name="+encodeURIComponent(encodeURIComponent(name||"datei"))
+              + "&type="+encodeURIComponent(type||"")
+              + "&task="+encodeURIComponent(taskId||"")
+              + "&ts="+now();
+    const r = await fetch(adr, {method:"POST",
+      headers:{"x-board-key":SYNC.key||"", "content-type":"text/plain"}, body: dataUrl});
     if(!r.ok) return false;
     /* Wichtig: Nur wenn der Server wirklich bestätigt. Fehlt die Ablage auf
        dem Server, antwortet er mit der Startseite – das darf nicht als
@@ -1362,8 +1367,11 @@ async function fetchFile(id){
   try{
     const r = await fetch("/api/file?id="+encodeURIComponent(id), {headers:SYNC.headers()});
     if(!r.ok) return null;
-    const d = await r.json();
-    if(d && d.data){ FILES.set(id, d.data); return d.data; }
+    const typ = r.headers.get("content-type")||"";
+    let d = null;
+    if(typ.includes("json")){ const j = await r.json(); d = j && j.data; }
+    else d = await r.text();
+    if(d){ FILES.set(id, d); return d; }
   }catch(e){}
   return null;
 }
@@ -2402,7 +2410,7 @@ async function offloadFiles(){
   }catch(e){ /* auch bei Fehlern weitermachen */ }
   finally{ SYNC.paused = false; }
   if(ok){ Store.save(); SYNC.push(); toast(t("offloadDone")); }
-  else toast(t("offloadFail"));
+  else toast((await probeFileStore()) ? t("offloadPart") : t("offloadFail"));
 }
 
 function setStatus(s){

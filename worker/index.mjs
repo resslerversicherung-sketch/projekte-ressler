@@ -14,6 +14,7 @@ async function ensure(env) {
   await env.DB.batch([
     env.DB.prepare("CREATE TABLE IF NOT EXISTS board2 (id TEXT PRIMARY KEY, rev INTEGER, state TEXT, mail TEXT)"),
     env.DB.prepare("CREATE TABLE IF NOT EXISTS files (id TEXT PRIMARY KEY, name TEXT, type TEXT, ts INTEGER, task TEXT, data TEXT)"),
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS parts (id TEXT, part INTEGER, name TEXT, type TEXT, ts INTEGER, task TEXT, data TEXT, PRIMARY KEY (id, part))"),
     env.DB.prepare("CREATE TABLE IF NOT EXISTS board (id TEXT PRIMARY KEY, doc TEXT)")
   ]);
   const vorhanden = await env.DB.prepare("SELECT 1 AS x FROM board2 WHERE id = 'board'").first();
@@ -47,14 +48,27 @@ const store = (env) => ({
       ON CONFLICT(id) DO UPDATE SET rev = ?1, state = ?2, mail = ?3`)
       .bind(rev, stateRaw, JSON.stringify(mail || {})).run();
   },
+  /* Große Dateien werden auf mehrere Einträge verteilt: D1 erlaubt
+     höchstens 2 MB je Eintrag. */
   async putFile(f) {
-    await env.DB.prepare(`INSERT INTO files (id, name, type, ts, task, data) VALUES (?1,?2,?3,?4,?5,?6)
-      ON CONFLICT(id) DO UPDATE SET name=?2, type=?3, ts=?4, task=?5, data=?6`)
-      .bind(f.id, f.name, f.type, f.ts, f.task, f.data).run();
+    const TEIL = 700_000;
+    const stuecke = [];
+    for (let i = 0; i < f.data.length; i += TEIL) stuecke.push(f.data.slice(i, i + TEIL));
+    const befehle = [env.DB.prepare("DELETE FROM parts WHERE id = ?1").bind(f.id)];
+    stuecke.forEach((d, i) => befehle.push(env.DB.prepare(
+      "INSERT INTO parts (id, part, name, type, ts, task, data) VALUES (?1,?2,?3,?4,?5,?6,?7)")
+      .bind(f.id, i, f.name, f.type, f.ts, f.task, d)));
+    await env.DB.batch(befehle);
   },
   async getFile(id) {
-    const r = await env.DB.prepare("SELECT name, type, data FROM files WHERE id = ?1").bind(id).first();
-    return r || null;
+    const r = await env.DB.prepare("SELECT name, type, data FROM parts WHERE id = ?1 ORDER BY part").bind(id).all();
+    const zeilen = (r && r.results) || [];
+    if (zeilen.length) {
+      return { name: zeilen[0].name, type: zeilen[0].type, data: zeilen.map(z => z.data).join("") };
+    }
+    // Übergangsweise: einzeln gespeicherte Dateien aus der ersten Fassung
+    const alt = await env.DB.prepare("SELECT name, type, data FROM files WHERE id = ?1").bind(id).first();
+    return alt || null;
   }
 });
 
