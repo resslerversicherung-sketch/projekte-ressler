@@ -427,6 +427,7 @@ const I18N = {
     localOnly:"Server nicht erreichbar – angemeldet mit dem Hauptzugang, Daten bleiben vorerst nur auf diesem Gerät.",
     serverDown:"Der Server antwortet nicht. Mitarbeiter-Konten können erst nach der Reparatur wieder genutzt werden; der Inhaber kommt mit PeterKevin hinein.",
     syncOn:"Synchronisiert", syncWait:"Wird synchronisiert…", syncOff:"Nur auf diesem Gerät",
+    authLost:"Der Server erkennt diesen Zugang nicht. Bitte abmelden und mit dem Hauptzugang PeterKevin anmelden – danach werden die Daten hochgeladen.",
     fileTooBig:"Die Datei ist zu groß (max. 1 MB).",
     offloading:"Anhänge werden ausgelagert…", offloadDone:"Anhänge ausgelagert – das Board ist wieder schnell.",
     fileMissing:"Anhang nicht gefunden.",
@@ -495,6 +496,7 @@ const I18N = {
     localOnly:"A szerver nem elérhető – a fő hozzáféréssel léptél be, az adatok egyelőre csak ezen az eszközön maradnak.",
     serverDown:"A szerver nem válaszol. A munkatársi fiókok csak a javítás után használhatók; a tulajdonos a PeterKevin belépővel tud bejelentkezni.",
     syncOn:"Szinkronizálva", syncWait:"Szinkronizálás…", syncOff:"Csak ezen az eszközön",
+    authLost:"A szerver nem ismeri fel ezt a hozzáférést. Jelentkezz ki, majd be a fő belépővel (PeterKevin) – utána feltöltődnek az adatok.",
     fileTooBig:"A fájl túl nagy (max. 1 MB).",
     offloading:"Mellékletek áthelyezése…", offloadDone:"A mellékletek áthelyezve – a tábla ismét gyors.",
     fileMissing:"A melléklet nem található.",
@@ -1504,9 +1506,8 @@ function drawAdmin(){
 async function checkServerState(){
   const box=document.getElementById("srvCheck");
   if(box) box.textContent=t("checking");
-  if(SYNC.mode!=="on"){ if(box) box.textContent=t("syncOff"); return; }
   const d = await SYNC.peek();
-  if(!d){ if(box) box.textContent=t("syncOff"); return; }
+  if(!d){ if(box) box.textContent = SYNC.authWarned ? t("authLost") : t("syncOff"); return; }
   const mem=(d.state&&d.state.members)||[];
   const aufg=((d.state&&d.state.groups)||[]).reduce((n,g)=>n+g.columns.reduce((k,c)=>k+c.tasks.length,0),0);
   const zeilen=[
@@ -2216,10 +2217,16 @@ const SYNC = {
   url:"/api/board",
   fast:5000,      // Abfrageintervall, während aktiv gearbeitet wird (ms)
   slow:30000,     // Abfrageintervall bei Leerlauf (ms)
-  key:null, rev:-1, mode:"off", seenTs:0, seenChat:0, everSynced:false, paused:false,
+  key:null, rev:-1, mode:"off", seenTs:0, seenChat:0, everSynced:false, paused:false, authWarned:false,
   busy:false, pushTimer:null, pollTimer:null, dirty:false, lastAct:0,
 
   headers(){ return {"Content-Type":"application/json","x-board-key":this.key||""}; },
+  /* Der Server erkennt den Zugang nicht – das muss der Mensch erfahren */
+  authProblem(){
+    this.mode="off"; this.busy=false;
+    setStatus("off");
+    if(!this.authWarned){ this.authWarned=true; toast(t("authLost")); }
+  },
   markSynced(){ if(!this.everSynced){ this.everSynced=true; KV.set("pm_synced_v1","1"); } },
   bump(){ this.lastAct = now(); },
 
@@ -2248,6 +2255,7 @@ const SYNC = {
     this.busy = true;
     try{
       const r = await fetch(this.url+"?rev="+this.rev, {headers:this.headers()});
+      if(r.status===401){ this.authProblem(); return false; }
       if(!r.ok) throw new Error(r.status);
       const d = await r.json();
       if(d.me){
@@ -2311,6 +2319,7 @@ const SYNC = {
         method:"PUT", headers:this.headers(),
         body: JSON.stringify({rev:this.rev, state:shared()})
       });
+      if(r.status===401){ this.authProblem(); this.busy=false; return; }
       if(r.status===409){                       // jemand war schneller: zusammenführen und erneut senden
         const d = await r.json();
         this.rev = d.rev;
