@@ -1,0 +1,19 @@
+{
+  // Cloudflare-Einstellungen. Nur "database_id" muss eingetragen werden.
+  "name": "projektboard",
+  "main": "worker/index.mjs",
+  "compatibility_date": "2026-01-01",
+
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "projektboard",
+      "database_id": "HIER_DIE_ID_AUS_DEM_CLOUDFLARE_DASHBOARD_EINTRAGEN"
+    }
+  ]
+}

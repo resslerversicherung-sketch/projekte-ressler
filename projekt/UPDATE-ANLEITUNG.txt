@@ -1,0 +1,45 @@
+REPARATUR-UPDATE  (Error 1102 / grauer Punkt / kein Login)
+==========================================================
+
+WENN DU GERADE NICHT HINEINKOMMST
+Melde dich mit dem Hauptzugang an:
+      Benutzer:  PeterKevin
+      Passwort:  peterkevin2026
+Der funktioniert auch ohne Server. Mitarbeiter-Konten (E-Mail +
+Passwort) kann nur der Server bestätigen und gehen erst nach dieser
+Reparatur wieder.
+
+URSACHE DES AUSFALLS
+Anhänge (PDF, Bilder) lagen eingebettet im gemeinsamen Datenstand.
+Der wurde dadurch mehrere Megabyte groß und sprengte das Rechenlimit
+des kostenlosen Cloudflare-Tarifs -> Error 1102, grauer Punkt, keine
+Synchronisation.
+
+WAS DIESES UPDATE ÄNDERT
+- Anhänge werden einzeln gespeichert; der gemeinsame Stand bleibt klein
+- Vorhandene Anhänge werden beim ersten Anmelden automatisch ausgelagert
+- Bestehende Datenbank wird automatisch ins neue Format übernommen
+- Anmeldung bricht nach 6 Sekunden ab statt zu hängen und sagt, was los ist
+- Obergrenze pro Anhang jetzt 1 MB (Datenbank erlaubt 2 MB pro Eintrag)
+
+SCHRITTE
+1. ZIP entpacken.
+2. Im Browser aufrufen:
+      github.com/DEINNAME/DEINE-ABLAGE/upload/main
+   (heißt der Hauptzweig "master", dann /upload/master)
+3. Die vier Ordner  public  lib  worker  netlify  gemeinsam ins
+   Fenster ziehen.
+4. Unten "Commit changes" klicken.
+5. Ein bis zwei Minuten warten. Fortschritt in Cloudflare:
+   Compute (Workers) -> Projekt -> Bereitstellungen.
+6. Board mit Strg+F5 neu laden (Mac: Cmd+Shift+R).
+7. NUR als Inhaber (PeterKevin) anmelden und warten, bis
+   "Anhänge werden ausgelagert..." und danach "Anhänge ausgelagert"
+   erscheint. Punkt neben dem Logo muss grün werden.
+8. Erst danach die Mitarbeiter anmelden lassen.
+
+GEHEN DATEN VERLOREN?
+Nein. Die Übernahme ins neue Format macht die Datenbank selbst.
+Änderungen, die in deinem Browser hängen geblieben sind, werden beim
+ersten grünen Punkt hochgeladen. Wer ganz sicher sein will: vorher
+Profilbild -> Team verwalten -> "Sicherung speichern".
