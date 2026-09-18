@@ -429,7 +429,7 @@ const I18N = {
     syncOn:"Synchronisiert", syncWait:"Wird synchronisiert…", syncOff:"Nur auf diesem Gerät",
     authLost:"Der Server erkennt diesen Zugang nicht. Bitte abmelden und mit dem Hauptzugang PeterKevin anmelden – danach werden die Daten hochgeladen.",
     fileTooBig:"Die Datei ist zu groß (max. 1 MB).",
-    offloading:"Anhänge werden ausgelagert…", offloadDone:"Anhänge ausgelagert – das Board ist wieder schnell.",
+    offloading:"Anhänge werden ausgelagert…", offloadFail:"Anhänge konnten nicht ausgelagert werden – die Server-Dateien (lib, worker) fehlen auf dem Server.", offloadDone:"Anhänge ausgelagert – das Board ist wieder schnell.",
     fileMissing:"Anhang nicht gefunden.",
     mailTitle:"E-Mail-Benachrichtigungen", mailOn:"Benachrichtigungen per E-Mail erhalten",
     mailAddr:"Meine E-Mail-Adresse", mailFrom:"Nur bei Änderungen von", mailAll:"Allen im Team",
@@ -453,6 +453,9 @@ const I18N = {
     pwConfirmed:"Zugang ist beim Server angekommen – der Mitarbeiter kann sich anmelden.",
     pwNotSent:"Der Zugang ist NICHT beim Server angekommen. Bitte erneut speichern.",
     checkState:"Zustand prüfen", checking:"Wird geprüft…",
+    doOffload:"Anhänge jetzt auslagern", storeOk:"Anhang-Ablage auf dem Server: vorhanden",
+    storeMissing:"Anhang-Ablage auf dem Server: FEHLT – bitte die Ordner lib und worker hochladen",
+    nothingToDo:"Keine eingebetteten Anhänge gefunden.",
     needEmail:"Bitte E-Mail-Adresse und Passwort angeben.", needName:"Bitte einen Namen eingeben.",
     pwShort:"Das Passwort braucht mindestens 6 Zeichen.", loginUser:"E-Mail oder Benutzername",
     fieldName:"Name", fieldMail:"E-Mail-Adresse (dient als Benutzername)", fieldPw:"Passwort",
@@ -498,7 +501,7 @@ const I18N = {
     syncOn:"Szinkronizálva", syncWait:"Szinkronizálás…", syncOff:"Csak ezen az eszközön",
     authLost:"A szerver nem ismeri fel ezt a hozzáférést. Jelentkezz ki, majd be a fő belépővel (PeterKevin) – utána feltöltődnek az adatok.",
     fileTooBig:"A fájl túl nagy (max. 1 MB).",
-    offloading:"Mellékletek áthelyezése…", offloadDone:"A mellékletek áthelyezve – a tábla ismét gyors.",
+    offloading:"Mellékletek áthelyezése…", offloadFail:"A mellékletek áthelyezése nem sikerült – a szerveroldali fájlok (lib, worker) hiányoznak.", offloadDone:"A mellékletek áthelyezve – a tábla ismét gyors.",
     fileMissing:"A melléklet nem található.",
     mailTitle:"E-mail értesítések", mailOn:"Értesítést kérek e-mailben",
     mailAddr:"Az e-mail címem", mailFrom:"Csak ezek változtatásairól", mailAll:"Mindenki",
@@ -522,6 +525,9 @@ const I18N = {
     pwConfirmed:"A hozzáférés megérkezett a szerverre – a munkatárs be tud lépni.",
     pwNotSent:"A hozzáférés NEM érkezett meg a szerverre. Mentsd el újra.",
     checkState:"Állapot ellenőrzése", checking:"Ellenőrzés…",
+    doOffload:"Mellékletek áthelyezése most", storeOk:"Melléklet-tároló a szerveren: megvan",
+    storeMissing:"Melléklet-tároló a szerveren: HIÁNYZIK – töltsd fel a lib és worker mappát",
+    nothingToDo:"Nincs beágyazott melléklet.",
     needEmail:"Adj meg e-mail címet és jelszót.", needName:"Adj meg egy nevet.",
     pwShort:"A jelszó legalább 6 karakter legyen.", loginUser:"E-mail vagy felhasználónév",
     fieldName:"Név", fieldMail:"E-mail cím (ez a felhasználónév)", fieldPw:"Jelszó",
@@ -1343,7 +1349,12 @@ async function putFile(id, name, type, dataUrl, taskId){
   try{
     const r = await fetch("/api/file", {method:"POST", headers:SYNC.headers(),
       body: JSON.stringify({id, name, type, data:dataUrl, task:taskId, ts:now()})});
-    return r.ok;
+    if(!r.ok) return false;
+    /* Wichtig: Nur wenn der Server wirklich bestätigt. Fehlt die Ablage auf
+       dem Server, antwortet er mit der Startseite – das darf nicht als
+       Erfolg gelten, sonst wäre die Datei verloren. */
+    const d = await r.json().catch(()=>null);
+    return !!(d && d.ok);
   }catch(e){ return false; }
 }
 async function fetchFile(id){
@@ -1489,6 +1500,7 @@ function drawAdmin(){
       <div style="border-top:1px solid var(--line);margin-top:18px;padding-top:16px">
         <div class="row">
           <button class="btn ghost-b sm" onclick="checkServerState()">⟳ ${esc(t("checkState"))}</button>
+          <button class="btn ghost-b sm" onclick="offloadNow()">⇪ ${esc(t("doOffload"))}</button>
           <button class="btn ghost-b sm" onclick="exportBackup()">⤓ ${esc(t("backup"))}</button>
           <button class="btn ghost-b sm" onclick="document.getElementById('impFile').click()">⤒ ${esc(t("restore"))}</button>
           <input type="file" accept="application/json,.json" id="impFile" class="hidden">
@@ -1503,6 +1515,28 @@ function drawAdmin(){
 }
 
 /* Zeigt, was wirklich auf dem Server liegt – zum Eingrenzen von Problemen */
+/* Auslagerung von Hand anstoßen und Ergebnis anzeigen */
+async function offloadNow(){
+  const box=document.getElementById("srvCheck");
+  const offen=[];
+  S.groups.forEach(g=>g.columns.forEach(c=>c.tasks.forEach(x=>
+    (x.attachments||[]).forEach(a=>{ if(a.data) offen.push(1); }))));
+  if(!offen.length){ if(box) box.textContent=t("nothingToDo"); return; }
+  if(box) box.textContent=t("offloading")+" ("+offen.length+")";
+  await offloadFiles();
+  await SYNC.flush();          // erst hochladen, dann nachsehen
+  await checkServerState();
+}
+
+/* Gibt es die Ablage für Anhänge auf dem Server? */
+async function probeFileStore(){
+  try{
+    const r = await fetch("/api/file?id=__probe", {headers:SYNC.headers()});
+    const typ = r.headers.get("content-type")||"";
+    return typ.includes("json");
+  }catch(e){ return false; }
+}
+
 async function checkServerState(){
   const box=document.getElementById("srvCheck");
   if(box) box.textContent=t("checking");
@@ -1510,8 +1544,10 @@ async function checkServerState(){
   if(!d){ if(box) box.textContent = SYNC.authWarned ? t("authLost") : t("syncOff"); return; }
   const mem=(d.state&&d.state.members)||[];
   const aufg=((d.state&&d.state.groups)||[]).reduce((n,g)=>n+g.columns.reduce((k,c)=>k+c.tasks.length,0),0);
+  const ablage = await probeFileStore();
   const zeilen=[
     `Stand-Nr. ${d.rev} · ${aufg} ${t("tasks")} · ${(JSON.stringify(d.state||{}).length/1024).toFixed(1)} kB`,
+    ablage ? t("storeOk") : t("storeMissing"),
     ...mem.map(m=>`• ${m.name||"?"} – ${m.email||"—"} – ${(m.pw||m.hasPw)?t("pwSet"):t("pwNone")}`)
   ];
   if(box) box.innerHTML = zeilen.map(z=>esc(z)).join("<br>");
@@ -2315,9 +2351,11 @@ const SYNC = {
     if(this.mode==="off" || this.busy || this.paused) return;
     this.busy = true; this.dirty = false;
     try{
-      const r = await fetch(this.url, {
+      /* Stand pur senden, Revision in der Adresse: so kann der Server ihn
+         auch bei großen Datenmengen ohne Zerlegen ablegen. */
+      const r = await fetch(this.url+"?rev="+this.rev, {
         method:"PUT", headers:this.headers(),
-        body: JSON.stringify({rev:this.rev, state:shared()})
+        body: JSON.stringify(shared())
       });
       if(r.status===401){ this.authProblem(); this.busy=false; return; }
       if(r.status===409){                       // jemand war schneller: zusammenführen und erneut senden
@@ -2364,6 +2402,7 @@ async function offloadFiles(){
   }catch(e){ /* auch bei Fehlern weitermachen */ }
   finally{ SYNC.paused = false; }
   if(ok){ Store.save(); SYNC.push(); toast(t("offloadDone")); }
+  else toast(t("offloadFail"));
 }
 
 function setStatus(s){
