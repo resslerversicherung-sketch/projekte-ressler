@@ -1,0 +1,35 @@
+DIESMAL BITTE ALLE VIER ORDNER HOCHLADEN
+========================================
+      public     lib     worker     netlify
+
+Nur "public" reicht NICHT. Die Ablage für einzelne Anhänge steckt in
+lib und worker. Fehlt sie, bleibt der gemeinsame Stand mehrere Megabyte
+groß - dann kann sich kein Mitarbeiter anmelden, weil der Server beim
+Filtern für ihn das Rechenlimit überschreitet. Die Fehlermeldung lautet
+dann irreführend "Benutzername oder Passwort stimmt nicht".
+
+SO PRÜFST DU, WAS AUF DEM SERVER LIEGT
+Im Browser aufrufen:
+   https://DEINE-ADRESSE.workers.dev/api/file?id=test
+   {"error":"unauthorized"}  -> neue Server-Dateien sind drauf  (gut)
+   Anmeldeseite / App        -> sie fehlen, bitte hochladen
+
+SCHRITTE
+1. ZIP entpacken.
+2. github.com/DEINNAME/DEINE-ABLAGE/upload/main aufrufen.
+3. Die vier Ordner public, lib, worker, netlify GEMEINSAM ins Fenster
+   ziehen.
+4. "Commit changes" klicken.
+5. Ein bis zwei Minuten warten (Cloudflare -> Bereitstellungen).
+6. Board mit Strg+F5 neu laden, als Inhaber anmelden (PeterKevin).
+7. Warten, bis "Anhänge ausgelagert" erscheint.
+8. Team verwalten -> "Zustand prüfen": die Größe muss jetzt von
+   mehreren Megabyte auf wenige Kilobyte gefallen sein.
+9. Erst dann kann sich der Mitarbeiter anmelden.
+
+AUSSERDEM BEHOBEN
+Wenn die Ablage auf dem Server fehlte, hielt die App die Antwort des
+Servers (die Startseite) für eine Bestätigung und hätte die Datei aus
+ihrem Speicher entfernen können. Jetzt wird die Antwort geprüft: ohne
+echte Bestätigung bleibt der Anhang erhalten, und die App meldet, dass
+die Server-Dateien fehlen.

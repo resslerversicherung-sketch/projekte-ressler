@@ -427,8 +427,9 @@ const I18N = {
     localOnly:"Server nicht erreichbar – angemeldet mit dem Hauptzugang, Daten bleiben vorerst nur auf diesem Gerät.",
     serverDown:"Der Server antwortet nicht. Mitarbeiter-Konten können erst nach der Reparatur wieder genutzt werden; der Inhaber kommt mit PeterKevin hinein.",
     syncOn:"Synchronisiert", syncWait:"Wird synchronisiert…", syncOff:"Nur auf diesem Gerät",
+    authLost:"Der Server erkennt diesen Zugang nicht. Bitte abmelden und mit dem Hauptzugang PeterKevin anmelden – danach werden die Daten hochgeladen.",
     fileTooBig:"Die Datei ist zu groß (max. 1 MB).",
-    offloading:"Anhänge werden ausgelagert…", offloadDone:"Anhänge ausgelagert – das Board ist wieder schnell.",
+    offloading:"Anhänge werden ausgelagert…", offloadFail:"Anhänge konnten nicht ausgelagert werden – die Server-Dateien (lib, worker) fehlen auf dem Server.", offloadDone:"Anhänge ausgelagert – das Board ist wieder schnell.",
     fileMissing:"Anhang nicht gefunden.",
     mailTitle:"E-Mail-Benachrichtigungen", mailOn:"Benachrichtigungen per E-Mail erhalten",
     mailAddr:"Meine E-Mail-Adresse", mailFrom:"Nur bei Änderungen von", mailAll:"Allen im Team",
@@ -449,6 +450,9 @@ const I18N = {
     visNote:"Wer eine Aufgabe nicht sehen darf, bekommt sie auch nicht auf das Gerät geschickt.",
     tasksOf:"Aufgaben von", visTasks:"Sichtbare Aufgaben", assignedAlways:"zugewiesen – immer sichtbar",
     newMember:"Neuer Mitarbeiter", memberSaved:"Mitarbeiter gespeichert.",
+    pwConfirmed:"Zugang ist beim Server angekommen – der Mitarbeiter kann sich anmelden.",
+    pwNotSent:"Der Zugang ist NICHT beim Server angekommen. Bitte erneut speichern.",
+    checkState:"Zustand prüfen", checking:"Wird geprüft…",
     needEmail:"Bitte E-Mail-Adresse und Passwort angeben.", needName:"Bitte einen Namen eingeben.",
     pwShort:"Das Passwort braucht mindestens 6 Zeichen.", loginUser:"E-Mail oder Benutzername",
     fieldName:"Name", fieldMail:"E-Mail-Adresse (dient als Benutzername)", fieldPw:"Passwort",
@@ -492,8 +496,9 @@ const I18N = {
     localOnly:"A szerver nem elérhető – a fő hozzáféréssel léptél be, az adatok egyelőre csak ezen az eszközön maradnak.",
     serverDown:"A szerver nem válaszol. A munkatársi fiókok csak a javítás után használhatók; a tulajdonos a PeterKevin belépővel tud bejelentkezni.",
     syncOn:"Szinkronizálva", syncWait:"Szinkronizálás…", syncOff:"Csak ezen az eszközön",
+    authLost:"A szerver nem ismeri fel ezt a hozzáférést. Jelentkezz ki, majd be a fő belépővel (PeterKevin) – utána feltöltődnek az adatok.",
     fileTooBig:"A fájl túl nagy (max. 1 MB).",
-    offloading:"Mellékletek áthelyezése…", offloadDone:"A mellékletek áthelyezve – a tábla ismét gyors.",
+    offloading:"Mellékletek áthelyezése…", offloadFail:"A mellékletek áthelyezése nem sikerült – a szerveroldali fájlok (lib, worker) hiányoznak.", offloadDone:"A mellékletek áthelyezve – a tábla ismét gyors.",
     fileMissing:"A melléklet nem található.",
     mailTitle:"E-mail értesítések", mailOn:"Értesítést kérek e-mailben",
     mailAddr:"Az e-mail címem", mailFrom:"Csak ezek változtatásairól", mailAll:"Mindenki",
@@ -514,6 +519,9 @@ const I18N = {
     visNote:"Akinek nem látható a feladat, annak az eszközére el sem jut.",
     tasksOf:"Feladatai:", visTasks:"Látható feladatok", assignedAlways:"hozzárendelve – mindig látja",
     newMember:"Új munkatárs", memberSaved:"Munkatárs elmentve.",
+    pwConfirmed:"A hozzáférés megérkezett a szerverre – a munkatárs be tud lépni.",
+    pwNotSent:"A hozzáférés NEM érkezett meg a szerverre. Mentsd el újra.",
+    checkState:"Állapot ellenőrzése", checking:"Ellenőrzés…",
     needEmail:"Adj meg e-mail címet és jelszót.", needName:"Adj meg egy nevet.",
     pwShort:"A jelszó legalább 6 karakter legyen.", loginUser:"E-mail vagy felhasználónév",
     fieldName:"Név", fieldMail:"E-mail cím (ez a felhasználónév)", fieldPw:"Jelszó",
@@ -1335,7 +1343,12 @@ async function putFile(id, name, type, dataUrl, taskId){
   try{
     const r = await fetch("/api/file", {method:"POST", headers:SYNC.headers(),
       body: JSON.stringify({id, name, type, data:dataUrl, task:taskId, ts:now()})});
-    return r.ok;
+    if(!r.ok) return false;
+    /* Wichtig: Nur wenn der Server wirklich bestätigt. Fehlt die Ablage auf
+       dem Server, antwortet er mit der Startseite – das darf nicht als
+       Erfolg gelten, sonst wäre die Datei verloren. */
+    const d = await r.json().catch(()=>null);
+    return !!(d && d.ok);
   }catch(e){ return false; }
 }
 async function fetchFile(id){
@@ -1460,7 +1473,7 @@ function drawAdmin(){
       <div style="flex:1;min-width:0">
         <b style="display:block;font-size:13.5px">${esc(m.name)}</b>
         <small style="color:var(--ink-3)">${esc(m.email||"—")} · ${esc(m.role==="admin"?t("roleAdmin"):t("roleMember"))}
-        · ${m.hasPw||m.pwNew?esc(t("pwSet")):esc(t("pwNone"))}</small>
+        · ${(m.hasPw||m.pwNew||m.pw)?esc(t("pwSet")):esc(t("pwNone"))}</small>
       </div>
       <span style="font-size:11.5px;color:var(--ink-3);white-space:nowrap">${cnt.seen}/${cnt.all}</span>
       <button class="btn ghost-b sm" onclick="editMember('${m.id}')">✎</button>
@@ -1480,16 +1493,33 @@ function drawAdmin(){
 
       <div style="border-top:1px solid var(--line);margin-top:18px;padding-top:16px">
         <div class="row">
+          <button class="btn ghost-b sm" onclick="checkServerState()">⟳ ${esc(t("checkState"))}</button>
           <button class="btn ghost-b sm" onclick="exportBackup()">⤓ ${esc(t("backup"))}</button>
           <button class="btn ghost-b sm" onclick="document.getElementById('impFile').click()">⤒ ${esc(t("restore"))}</button>
           <input type="file" accept="application/json,.json" id="impFile" class="hidden">
         </div>
+        <p id="srvCheck" style="color:var(--ink-3);font-size:12px;margin:10px 0 0;line-height:1.7"></p>
         <p style="color:var(--ink-3);font-size:12px;margin:10px 0 0">${esc(t("backupNote"))}</p>
       </div>
     </div>
   </div>`;
   const f=document.getElementById("impFile");
   if(f) f.onchange=()=>{ if(f.files[0]) importBackup(f.files[0]); f.value=""; };
+}
+
+/* Zeigt, was wirklich auf dem Server liegt – zum Eingrenzen von Problemen */
+async function checkServerState(){
+  const box=document.getElementById("srvCheck");
+  if(box) box.textContent=t("checking");
+  const d = await SYNC.peek();
+  if(!d){ if(box) box.textContent = SYNC.authWarned ? t("authLost") : t("syncOff"); return; }
+  const mem=(d.state&&d.state.members)||[];
+  const aufg=((d.state&&d.state.groups)||[]).reduce((n,g)=>n+g.columns.reduce((k,c)=>k+c.tasks.length,0),0);
+  const zeilen=[
+    `Stand-Nr. ${d.rev} · ${aufg} ${t("tasks")} · ${(JSON.stringify(d.state||{}).length/1024).toFixed(1)} kB`,
+    ...mem.map(m=>`• ${m.name||"?"} – ${m.email||"—"} – ${(m.pw||m.hasPw)?t("pwSet"):t("pwNone")}`)
+  ];
+  if(box) box.innerHTML = zeilen.map(z=>esc(z)).join("<br>");
 }
 
 /* Sicherung: alles in eine Datei – zum Umziehen auf einen anderen Anbieter */
@@ -1570,7 +1600,7 @@ function editMember(id){
       <p class="lbl" style="margin-top:14px">${esc(t("fieldMail"))}</p>
       <input class="inp" id="aMail" type="email" inputmode="email" placeholder="name@firma.de" value="${esc(m?(m.email||""):"")}">
 
-      <p class="lbl" style="margin-top:14px">${esc(t("fieldPw"))}${m&&m.hasPw?` <span style="text-transform:none;letter-spacing:0;font-weight:400">(${esc(t("leaveEmpty"))})</span>`:""}</p>
+      <p class="lbl" style="margin-top:14px">${esc(t("fieldPw"))}${m&&(m.hasPw||m.pw)?` <span style="text-transform:none;letter-spacing:0;font-weight:400">(${esc(t("leaveEmpty"))})</span>`:""}</p>
       <input class="inp" id="aPw" type="password" autocomplete="new-password" placeholder="${esc(isNew?t("pw"):t("pwNew"))}">
       <p style="color:var(--ink-3);font-size:12px;margin:6px 0 0">${esc(t("pwHint"))}</p>
 
@@ -1631,7 +1661,7 @@ function editMember(id){
       S.members.push(rec);
     }
     rec.name=nm; rec.email=em; rec.avatar=img; rec.role=role; touch(rec);
-    if(pw){ rec.pwNew = await hashOf(em+":"+pw); rec.hasPw = true; }
+    if(pw){ rec.pwNew = await hashOf(em.toLowerCase()+":"+pw); rec.hasPw = true; }
 
     // Sichtbarkeit übernehmen
     if(role!=="admin"){
@@ -1675,6 +1705,15 @@ function editMember(id){
       else if(ex.email!==em){ ex.email=em; touch(ex); }
     }
     close(); render(); save(); drawAdmin(); toast(t("memberSaved"));
+
+    // Prüfen, ob der Zugang wirklich beim Server angekommen ist
+    if(pw && SYNC.mode==="on"){
+      await SYNC.flush();
+      const d = await SYNC.peek();
+      const drauf = d && d.state && (d.state.members||[]).find(m=>m.id===rec.id && (m.pw||m.hasPw));
+      toast(drauf ? t("pwConfirmed") : t("pwNotSent"));
+      drawAdmin();
+    }
   };
 }
 
@@ -2183,10 +2222,16 @@ const SYNC = {
   url:"/api/board",
   fast:5000,      // Abfrageintervall, während aktiv gearbeitet wird (ms)
   slow:30000,     // Abfrageintervall bei Leerlauf (ms)
-  key:null, rev:-1, mode:"off", seenTs:0, seenChat:0, everSynced:false, paused:false,
+  key:null, rev:-1, mode:"off", seenTs:0, seenChat:0, everSynced:false, paused:false, authWarned:false,
   busy:false, pushTimer:null, pollTimer:null, dirty:false, lastAct:0,
 
   headers(){ return {"Content-Type":"application/json","x-board-key":this.key||""}; },
+  /* Der Server erkennt den Zugang nicht – das muss der Mensch erfahren */
+  authProblem(){
+    this.mode="off"; this.busy=false;
+    setStatus("off");
+    if(!this.authWarned){ this.authWarned=true; toast(t("authLost")); }
+  },
   markSynced(){ if(!this.everSynced){ this.everSynced=true; KV.set("pm_synced_v1","1"); } },
   bump(){ this.lastAct = now(); },
 
@@ -2215,6 +2260,7 @@ const SYNC = {
     this.busy = true;
     try{
       const r = await fetch(this.url+"?rev="+this.rev, {headers:this.headers()});
+      if(r.status===401){ this.authProblem(); return false; }
       if(!r.ok) throw new Error(r.status);
       const d = await r.json();
       if(d.me){
@@ -2244,6 +2290,23 @@ const SYNC = {
     }
   },
 
+  /* sofort senden und warten – für Fälle, in denen es sicher ankommen muss */
+  async flush(){
+    clearTimeout(this.pushTimer);
+    this.dirty = true;
+    if(this.mode==="off") return false;
+    for(let i=0;i<40 && (this.busy || this.paused); i++) await new Promise(r=>setTimeout(r,250));
+    await this.send();
+    return !this.dirty;
+  },
+  /* Stand direkt vom Server holen, ohne ihn zu übernehmen */
+  async peek(){
+    try{
+      const r = await fetch(this.url+"?rev=-1", {headers:this.headers()});
+      if(!r.ok) return null;
+      return await r.json();
+    }catch(e){ return null; }
+  },
   push(){
     this.bump();
     this.dirty = true;
@@ -2261,6 +2324,7 @@ const SYNC = {
         method:"PUT", headers:this.headers(),
         body: JSON.stringify({rev:this.rev, state:shared()})
       });
+      if(r.status===401){ this.authProblem(); this.busy=false; return; }
       if(r.status===409){                       // jemand war schneller: zusammenführen und erneut senden
         const d = await r.json();
         this.rev = d.rev;
@@ -2294,14 +2358,18 @@ async function offloadFiles(){
     (x.attachments||[]).forEach(a=>{ if(a.data) offen.push({x,a}); }))));
   if(!offen.length) return;
   SYNC.paused = true;
+  setTimeout(()=>{ SYNC.paused=false; }, 90000);        // Sicherung: nie dauerhaft blockieren
   toast(t("offloading"));
   let ok=0;
-  for(const {x,a} of offen){
-    const good = await putFile(a.id, a.name, a.type||"", a.data, x.id);
-    if(good){ FILES.set(a.id, a.data); delete a.data; a.remote=true; touch(x); ok++; }
-  }
-  SYNC.paused = false;
+  try{
+    for(const {x,a} of offen){
+      const good = await putFile(a.id, a.name, a.type||"", a.data, x.id);
+      if(good){ FILES.set(a.id, a.data); delete a.data; a.remote=true; touch(x); ok++; }
+    }
+  }catch(e){ /* auch bei Fehlern weitermachen */ }
+  finally{ SYNC.paused = false; }
   if(ok){ Store.save(); SYNC.push(); toast(t("offloadDone")); }
+  else toast(t("offloadFail"));
 }
 
 function setStatus(s){
@@ -2465,18 +2533,29 @@ async function hashOf(str){
 /* Erst den Server fragen (dort liegen die Konten der Mitarbeiter),
    sonst gegen den Hauptzugang in dieser Datei prüfen. */
 async function checkLogin(user,pass){
-  const combo = user.trim()+":"+pass;
-  const hx = await hashOf(combo);
+  const name = user.trim();
+  const hx = await hashOf(name+":"+pass);
+  /* Groß-/Kleinschreibung der E-Mail soll nicht entscheiden – Handy-Tastaturen
+     schreiben den ersten Buchstaben gern groß. Deshalb beide Varianten prüfen. */
+  const varianten = [];
+  for(const n of [name, name.toLowerCase()]){
+    const x = await hashOf(n+":"+pass);
+    if(x && !varianten.includes(x)) varianten.push(x);
+  }
   if(hx){
     let erreichbar = false;
     try{
       const ac = new AbortController();
       const zeit = setTimeout(()=>ac.abort(), 6000);           // nicht endlos warten
-      const r = await fetch(SYNC.url+"?rev=-1", {headers:{"x-board-key":hx}, signal:ac.signal});
+      let r = null;
+      for(const k of varianten){
+        r = await fetch(SYNC.url+"?rev=-1", {headers:{"x-board-key":k}, signal:ac.signal});
+        erreichbar = true;
+        if(r.ok){ const d=await r.json(); return {key:k, me:d.me||null, server:true}; }
+        if(r.status!==401) break;                               // anderer Fehler -> abbrechen
+      }
       clearTimeout(zeit);
-      erreichbar = true;
-      if(r.ok){ const d=await r.json(); return {key:hx, me:d.me||null, server:true}; }
-      if(r.status===401) return false;                          // Zugang wirklich falsch
+      if(r && r.status===401) return false;                     // Zugang wirklich falsch
     }catch(e){ /* nicht erreichbar -> örtlich weiter */ }
     if(hx===AUTH_HASH) return {key:hx, me:null, server:false, warn:"localOnly"};
     return {error: erreichbar ? "serverDown" : "serverDown"};
