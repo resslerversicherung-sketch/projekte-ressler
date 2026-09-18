@@ -684,7 +684,9 @@ const Prefs = {
 const SHARED_KEYS = ["members","groups","chats","notifications","tomb","watchers"];
 function shared(){ const o={}; SHARED_KEYS.forEach(k=>o[k]=S[k]); return o; }
 /* Neu gesetzte Passwörter werden einmal übertragen und dann örtlich entfernt */
-function clearPwNew(){ (S.members||[]).forEach(m=>{ if(m.pwNew){ delete m.pwNew; m.hasPw=true; } }); }
+/* Nach dem Übertragen bleibt das Passwort erhalten: aus pwNew wird pw.
+   Sonst ginge es beim nächsten Speichern eines großen Standes verloren. */
+function clearPwNew(){ (S.members||[]).forEach(m=>{ if(m.pwNew){ m.pw=m.pwNew; delete m.pwNew; m.hasPw=true; } }); }
 
 function save(){ Store.save(); Prefs.save(); SYNC.push(); }
 
